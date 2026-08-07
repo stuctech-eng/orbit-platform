@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Feedback — ORBIT</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .feedback-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 36px;
+    max-width: 420px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .feedback-input,
+  .feedback-textarea,
+  .feedback-select {
+    width: 100%;
+    background: var(--dim-06);
+    border: 1px solid var(--dim-25);
+    border-radius: 14px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 400;
+    padding: 16px 20px;
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  .feedback-input::placeholder,
+  .feedback-textarea::placeholder {
+    color: var(--dim-25);
+  }
+  .feedback-input:focus,
+  .feedback-textarea:focus,
+  .feedback-select:focus {
+    border-color: var(--dim-60);
+  }
+  .feedback-textarea {
+    min-height: 160px;
+    resize: vertical;
+  }
+  .feedback-status {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.5;
+    text-align: center;
+    min-height: 22px;
+    color: var(--dim-40);
+    transition: color 0.2s;
+  }
+  .feedback-status.ok  { color: var(--white); }
+  .feedback-status.err { color: rgba(255,80,80,0.85); }
+  .feedback-card {
+    max-width: 420px;
+    width: 100%;
+    margin: 36px auto 0;
+    border: 1px solid var(--dim-12);
+    border-radius: 18px;
+    padding: 28px 24px;
+    background: var(--dim-06);
+    text-align: left;
+  }
+  .feedback-card .label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dim-40);
+    margin-bottom: 4px;
+  }
+  .feedback-card .value {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--white);
+    margin-bottom: 18px;
+    word-break: break-word;
+  }
+  .feedback-note {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--dim-60);
+    margin: 0;
+  }
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--dim-25);
+    border-radius: 999px;
+    color: var(--dim-60);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-ghost:hover { border-color: var(--dim-60); color: var(--white); }
+  #signedOutView, #signedInView { display: none; }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="about.html">About</a>
+    <a href="../games.html">Games</a>
+    <a href="account.html">Account</a>
+  </div>
+</nav>
+
+<section class="section" id="signedOutView">
+  <div class="section-inner">
+    <div class="eyebrow">Feedback</div>
+    <h2>Sign in to send feedback.</h2>
+    <p class="lead" style="max-width:420px;margin:0 auto;">
+      Feedback is linked to your ORBIT account so we can keep platform and game reports organised.
+    </p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="account.html">Sign in</a>
+      <a class="btn btn-secondary" href="../games.html">Back to games</a>
+    </div>
+    <p class="feedback-status" id="signedOutStatus" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<section class="section" id="signedInView">
+  <div class="section-inner">
+    <div class="eyebrow">Feedback</div>
+    <h2>Tell us what needs improving.</h2>
+    <p class="lead" style="max-width:460px;margin:0 auto;">
+      Send platform feedback or attach it to ORBIT directly. Short, concrete notes are the most useful.
+    </p>
+
+    <div class="feedback-card">
+      <p class="label">Signed in as</p>
+      <p class="value" id="userEmail">—</p>
+      <p class="feedback-note">Your message is stored with your account ID so we can follow up on bugs or feature requests.</p>
+    </div>
+
+    <form class="feedback-form" id="feedbackForm" autocomplete="off" novalidate>
+      <select class="feedback-select" id="gameInput">
+        <option value="">Platform feedback</option>
+        <option value="orbit">ORBIT</option>
+      </select>
+      <textarea
+        class="feedback-textarea"
+        id="messageInput"
+        maxlength="2000"
+        placeholder="What happened, what felt off, or what should change?"
+        required
+      ></textarea>
+      <input
+        class="feedback-input"
+        id="contactInput"
+        type="text"
+        maxlength="200"
+        placeholder="Contact info (optional if your account email is enough)"
+      >
+      <button class="btn btn-primary" id="submitBtn" type="submit">Send feedback</button>
+      <p class="feedback-status" id="feedbackStatus" role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="btn-row" style="margin-top:24px;">
+      <a class="btn btn-secondary" href="beta.html">Beta access</a>
+      <button class="btn-ghost" id="signOutBtn" type="button">Sign out</button>
+    </div>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script src="../assets/firebase-config.js"></script>
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+  const initialFirebaseConfig = {
+    apiKey:     window.__ORBIT_FB_API_KEY__ || '',
+    authDomain: window.__ORBIT_FB_AUTH_DOMAIN__ || '',
+    projectId:  window.__ORBIT_FB_PROJECT_ID__ || '',
+  };
+  const signedOutView     = document.getElementById('signedOutView');
+  const signedInView      = document.getElementById('signedInView');
+  const signedOutStatus   = document.getElementById('signedOutStatus');
+  const feedbackForm      = document.getElementById('feedbackForm');
+  const feedbackStatus    = document.getElementById('feedbackStatus');
+  const messageInput      = document.getElementById('messageInput');
+  const contactInput      = document.getElementById('contactInput');
+  const gameInput         = document.getElementById('gameInput');
+  const submitBtn         = document.getElementById('submitBtn');
+  const signOutBtn        = document.getElementById('signOutBtn');
+  const userEmail         = document.getElementById('userEmail');
+
+  let auth = null;
+  let currentUser = null;
+
+  function setFeedbackStatus(message, type) {
+    feedbackStatus.textContent = message;
+    feedbackStatus.className = 'feedback-status ' + (type || '');
+  }
+
+  function setSignedOutStatus(message, type) {
+    signedOutStatus.textContent = message;
+    signedOutStatus.className = 'feedback-status ' + (type || '');
+  }
+
+  function hasCompleteConfig(config) {
+    return Boolean(config.apiKey && config.authDomain && config.projectId);
+  }
+
+  function showSignedOut(message) {
+    signedInView.style.display = 'none';
+    signedOutView.style.display = 'flex';
+    setSignedOutStatus(message || '', message ? 'err' : '');
+  }
+
+  function showSignedIn(user) {
+    signedOutView.style.display = 'none';
+    signedInView.style.display = 'flex';
+    setSignedOutStatus('', '');
+    userEmail.textContent = user.email || 'No email available';
+    if (!contactInput.value.trim() && user.email) {
+      contactInput.value = user.email;
+    }
+  }
+
+  function showMissingConfig() {
+    showSignedOut('Firebase client config is not set yet.');
+  }
+
+  function initialiseAuth(config) {
+    if (auth || !hasCompleteConfig(config)) return;
+    const app = initializeApp(config);
+    auth = getAuth(app);
+
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user || null;
+
+      if (!user) {
+        showSignedOut('');
+        return;
+      }
+
+      setFeedbackStatus('', '');
+      setSignedOutStatus('', '');
+      showSignedIn(user);
+    });
+  }
+
+  signOutBtn.addEventListener('click', async () => {
+    if (!auth) return;
+    await signOut(auth);
+  });
+
+  feedbackForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (!currentUser) {
+      showSignedOut('Please sign in first.');
+      return;
+    }
+
+    const message = messageInput.value.trim();
+    const contact = contactInput.value.trim();
+    const gameId = gameInput.value.trim();
+
+    if (!message) {
+      setFeedbackStatus('Please enter your feedback first.', 'err');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    setFeedbackStatus('Sending…', '');
+
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({ message, contact, gameId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setFeedbackStatus(data.error || 'Something went wrong. Try again.', 'err');
+        submitBtn.disabled = false;
+        return;
+      }
+
+      messageInput.value = '';
+      setFeedbackStatus('Thanks — your feedback has been sent.', 'ok');
+    } catch {
+      setFeedbackStatus('Something went wrong. Try again.', 'err');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  window.addEventListener('orbit:firebase-config', (event) => {
+    const config = event.detail || {};
+    if (!hasCompleteConfig(config)) return;
+    setSignedOutStatus('', '');
+    initialiseAuth(config);
+  });
+
+  if (hasCompleteConfig(initialFirebaseConfig)) {
+    initialiseAuth(initialFirebaseConfig);
+  } else {
+    showSignedOut('Loading Firebase config…');
+
+    (window.__ORBIT_FB_CONFIG_PROMISE__ || Promise.resolve(initialFirebaseConfig))
+      .then((config) => {
+        if (hasCompleteConfig(config)) {
+          setSignedOutStatus('', '');
+          initialiseAuth(config);
+        } else {
+          showMissingConfig();
+        }
+      })
+      .catch(() => {
+        showMissingConfig();
+      });
+  }
+</script>
+
+</body>
+</html>

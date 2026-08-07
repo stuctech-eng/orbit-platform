@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beta Access — ORBIT</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .beta-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 40px;
+    max-width: 360px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .beta-input {
+    background: var(--dim-06);
+    border: 1px solid var(--dim-25);
+    border-radius: 14px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 16px 20px;
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  .beta-input::placeholder {
+    color: var(--dim-25);
+    text-transform: none;
+    letter-spacing: 0.04em;
+  }
+  .beta-input:focus {
+    border-color: var(--dim-60);
+  }
+  .beta-status {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.5;
+    text-align: center;
+    min-height: 22px;
+    color: var(--dim-40);
+    transition: color 0.2s;
+  }
+  .beta-status.ok  { color: var(--white); }
+  .beta-status.err { color: rgba(255,80,80,0.85); }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="about.html">About</a>
+    <a href="../games.html">Games</a>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="eyebrow">Beta Access</div>
+    <h2>Got an invite code?<br>Enter it below.</h2>
+    <p class="lead" style="max-width:380px;margin:0 auto 0;">
+      ORBIT is currently in closed beta. Enter your personal invite code to
+      unlock the full game.
+    </p>
+
+    <form class="beta-form" id="betaForm" autocomplete="off" novalidate>
+      <input
+        class="beta-input"
+        id="codeInput"
+        type="text"
+        inputmode="text"
+        maxlength="32"
+        placeholder="Your invite code"
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <button class="btn btn-primary" type="submit">Unlock</button>
+      <p class="beta-status" id="betaStatus" role="status" aria-live="polite"></p>
+    </form>
+
+    <p class="body" style="margin-top:48px;opacity:0.4;">
+      No code yet? Beta invites go out in small waves.
+    </p>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script>
+  const form   = document.getElementById('betaForm');
+  const input  = document.getElementById('codeInput');
+  const status = document.getElementById('betaStatus');
+
+  function setStatus(msg, type) {
+    status.textContent = msg;
+    status.className   = 'beta-status ' + (type || '');
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = input.value.trim();
+    if (!code) { setStatus('Please enter your invite code.', 'err'); return; }
+
+    setStatus('Checking…', '');
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+
+    try {
+      const res  = await fetch('/api/check-code', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ code }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.valid) {
+        setStatus('✓ Code accepted — redirecting to the game…', 'ok');
+        setTimeout(() => {
+          window.location.href = data.gameUrl || 'https://orbit-game.vercel.app';
+        }, 1200);
+      } else {
+        setStatus(data.message || 'Code not recognised. Check for typos.', 'err');
+        btn.disabled = false;
+      }
+    } catch {
+      setStatus('Something went wrong — please try again.', 'err');
+      btn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -17,20 +17,20 @@ Live games linken altijd naar hun eigen repo/URL (bijv. ORBIT zelf: `stuctech-en
 - `assets/styles.css`, `assets/ambient-cells.js` — gedeelde stijl + herbruikbare ambient-canvas
 - Plain HTML/CSS/JS, geen framework — zelfde iPhone-first/Working Copy-aanpak als ORBIT zelf
 
-**Fase 2 — Nog te bouwen**
+**Fase 2 — In uitvoering**
 
-- `pages/beta.html` — invite-codes via Firebase Firestore (`beta_codes/{code}`)
-- `pages/account.html`
-- `pages/feedback.html`
-- `/api/check-code.js` (Vercel serverless function)
-- `/api/feedback.js` (Vercel serverless function)
+- ✅ `pages/beta.html` — invite-codes via Firebase Firestore (`beta_codes/{code}`)
+- ✅ `/api/check-code.js` (Vercel serverless function)
+- ✅ `pages/account.html` — registreren & inloggen via Firebase Auth (e-mail/wachtwoord)
+- ✅ `pages/feedback.html` — authenticated feedbackformulier
+- ✅ `/api/feedback.js` (Vercel serverless function)
 - Firebase-schema: zie `ARCHITECTURE.md` (game-agnostisch: `games/`, `users/`, `beta_codes/`, `game_sessions/`, `leaderboards/`, `feedback/`)
 
 ---
 
 ## Volgende stap
 
-Fase 2 starten: Firebase-project koppelen, `beta.html` + `/api/check-code.js` bouwen als eerste onderdeel (invite-flow is de basis waarop account/feedback voortbouwen).
+Publieke Firebase clientconfig beschikbaar maken via runtime window-properties of `/api/firebase-config` (`ORBIT_FB_API_KEY`/`FIREBASE_API_KEY`, `ORBIT_FB_AUTH_DOMAIN`/`FIREBASE_AUTH_DOMAIN`, `ORBIT_FB_PROJECT_ID`/`FIREBASE_PROJECT_ID`) en in Vercel de server-side admin env vars instellen: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`.
 
 ---
 
