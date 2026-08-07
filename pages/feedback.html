@@ -311,8 +311,13 @@
   } else {
     showSignedOut('Loading Firebase config…');
 
+    const configTimeout = window.setTimeout(() => {
+      if (!auth) showMissingConfig();
+    }, 4000);
+
     (window.__ORBIT_FB_CONFIG_PROMISE__ || Promise.resolve(initialFirebaseConfig))
       .then((config) => {
+        window.clearTimeout(configTimeout);
         if (hasCompleteConfig(config)) {
           setSignedOutStatus('', '');
           initialiseAuth(config);
@@ -321,6 +326,7 @@
         }
       })
       .catch(() => {
+        window.clearTimeout(configTimeout);
         showMissingConfig();
       });
   }
