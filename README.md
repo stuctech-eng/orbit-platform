@@ -21,7 +21,7 @@ Live games linken altijd naar hun eigen repo/URL (bijv. ORBIT zelf: `stuctech-en
 
 - ✅ `pages/beta.html` — invite-codes via Firebase Firestore (`beta_codes/{code}`)
 - ✅ `/api/check-code.js` (Vercel serverless function)
-- [ ] `pages/account.html`
+- ✅ `pages/account.html` — registreren & inloggen via Firebase Auth (e-mail/wachtwoord)
 - [ ] `pages/feedback.html`
 - [ ] `/api/feedback.js` (Vercel serverless function)
 - Firebase-schema: zie `ARCHITECTURE.md` (game-agnostisch: `games/`, `users/`, `beta_codes/`, `game_sessions/`, `leaderboards/`, `feedback/`)

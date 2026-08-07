@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Account — ORBIT</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .account-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 36px;
+    max-width: 360px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .account-input {
+    background: var(--dim-06);
+    border: 1px solid var(--dim-25);
+    border-radius: 14px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 400;
+    padding: 16px 20px;
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  .account-input::placeholder { color: var(--dim-25); }
+  .account-input:focus { border-color: var(--dim-60); }
+
+  .account-status {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.5;
+    text-align: center;
+    min-height: 22px;
+    color: var(--dim-40);
+    transition: color 0.2s;
+  }
+  .account-status.ok  { color: var(--white); }
+  .account-status.err { color: rgba(255,80,80,0.85); }
+
+  .tab-row {
+    display: flex;
+    gap: 0;
+    max-width: 360px;
+    width: 100%;
+    margin: 32px auto 0;
+    border: 1px solid var(--dim-12);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--dim-40);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 13px 0;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .tab-btn.active {
+    background: var(--dim-12);
+    color: var(--white);
+  }
+
+  /* Signed-in state */
+  .account-card {
+    max-width: 360px;
+    width: 100%;
+    margin: 36px auto 0;
+    border: 1px solid var(--dim-12);
+    border-radius: 18px;
+    padding: 28px 24px;
+    background: var(--dim-06);
+    text-align: left;
+  }
+  .account-card .label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dim-40);
+    margin-bottom: 4px;
+  }
+  .account-card .value {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--white);
+    margin-bottom: 20px;
+    word-break: break-all;
+  }
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--dim-25);
+    border-radius: 999px;
+    color: var(--dim-60);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    margin-top: 4px;
+  }
+  .btn-ghost:hover { border-color: var(--dim-60); color: var(--white); }
+
+  #viewSignedOut, #viewSignedIn { display: none; }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="about.html">About</a>
+    <a href="../games.html">Games</a>
+    <a href="beta.html">Beta</a>
+  </div>
+</nav>
+
+<!-- Signed-out view -->
+<section class="section" id="viewSignedOut">
+  <div class="section-inner">
+    <div class="eyebrow">Account</div>
+    <h2 id="formTitle">Sign in</h2>
+
+    <div class="tab-row">
+      <button class="tab-btn active" id="tabSignIn" type="button">Sign in</button>
+      <button class="tab-btn"        id="tabRegister" type="button">Register</button>
+    </div>
+
+    <form class="account-form" id="accountForm" autocomplete="off" novalidate>
+      <input class="account-input" id="emailInput"    type="email"    placeholder="Email address" autocomplete="email">
+      <input class="account-input" id="passwordInput" type="password" placeholder="Password"      autocomplete="current-password" minlength="6">
+      <button class="btn btn-primary" id="submitBtn" type="submit">Sign in</button>
+      <p class="account-status" id="accountStatus" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+
+<!-- Signed-in view -->
+<section class="section" id="viewSignedIn">
+  <div class="section-inner">
+    <div class="eyebrow">Account</div>
+    <h2>Welcome back.</h2>
+
+    <div class="account-card">
+      <p class="label">Email</p>
+      <p class="value" id="displayEmail">—</p>
+      <p class="label">Member since</p>
+      <p class="value" id="displayCreated">—</p>
+      <button class="btn-ghost" id="signOutBtn" type="button">Sign out</button>
+    </div>
+
+    <div class="btn-row" style="margin-top:36px;">
+      <a class="btn btn-primary" href="beta.html">Beta access</a>
+      <a class="btn btn-secondary" href="../games.html">Games</a>
+    </div>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<!-- Firebase client config (public values — not secrets) -->
+<script src="../assets/firebase-config.js"></script>
+<!-- Firebase Auth (client SDK via CDN — no build step needed) -->
+<script type="module">
+  import { initializeApp }                         from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getAuth, createUserWithEmailAndPassword,
+           signInWithEmailAndPassword, signOut,
+           onAuthStateChanged }                    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+  // ---------------------------------------------------------------------------
+  // Firebase config — these values are PUBLIC (client SDK config, not secrets).
+  // They are safe to commit. Security is enforced by Firebase Auth + Firestore rules.
+  // Replace the placeholders with your actual Firebase project values.
+  // ---------------------------------------------------------------------------
+  const firebaseConfig = {
+    apiKey:            window.__ORBIT_FB_API_KEY__     || 'REPLACE_WITH_API_KEY',
+    authDomain:        window.__ORBIT_FB_AUTH_DOMAIN__ || 'REPLACE_WITH_PROJECT_ID.firebaseapp.com',
+    projectId:         window.__ORBIT_FB_PROJECT_ID__  || 'REPLACE_WITH_PROJECT_ID',
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // --- UI refs ---
+  const viewOut    = document.getElementById('viewSignedOut');
+  const viewIn     = document.getElementById('viewSignedIn');
+  const formTitle  = document.getElementById('formTitle');
+  const submitBtn  = document.getElementById('submitBtn');
+  const statusEl   = document.getElementById('accountStatus');
+  const emailInput = document.getElementById('emailInput');
+  const pwInput    = document.getElementById('passwordInput');
+  const tabSignIn  = document.getElementById('tabSignIn');
+  const tabReg     = document.getElementById('tabRegister');
+  const signOutBtn = document.getElementById('signOutBtn');
+
+  let mode = 'signin'; // 'signin' | 'register'
+
+  function setStatus(msg, type) {
+    statusEl.textContent = msg;
+    statusEl.className   = 'account-status ' + (type || '');
+  }
+
+  function switchMode(m) {
+    mode = m;
+    if (m === 'signin') {
+      tabSignIn.classList.add('active');
+      tabReg.classList.remove('active');
+      formTitle.textContent  = 'Sign in';
+      submitBtn.textContent  = 'Sign in';
+    } else {
+      tabReg.classList.add('active');
+      tabSignIn.classList.remove('active');
+      formTitle.textContent  = 'Create account';
+      submitBtn.textContent  = 'Create account';
+    }
+    setStatus('', '');
+  }
+
+  tabSignIn.addEventListener('click', () => switchMode('signin'));
+  tabReg.addEventListener('click',    () => switchMode('register'));
+
+  document.getElementById('accountForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const pw    = pwInput.value;
+    if (!email || !pw) { setStatus('Please fill in all fields.', 'err'); return; }
+
+    submitBtn.disabled = true;
+    setStatus('Please wait…', '');
+
+    try {
+      if (mode === 'register') {
+        await createUserWithEmailAndPassword(auth, email, pw);
+      } else {
+        await signInWithEmailAndPassword(auth, email, pw);
+      }
+      // onAuthStateChanged handles the UI switch
+    } catch (err) {
+      const msgs = {
+        'auth/email-already-in-use':  'An account with this email already exists.',
+        'auth/invalid-email':         'That doesn\'t look like a valid email.',
+        'auth/weak-password':         'Password must be at least 6 characters.',
+        'auth/user-not-found':        'No account found with this email.',
+        'auth/wrong-password':        'Incorrect password.',
+        'auth/invalid-credential':    'Email or password is incorrect.',
+        'auth/too-many-requests':     'Too many attempts. Try again later.',
+        'auth/configuration-not-found': 'Firebase not yet configured — see README.',
+      };
+      setStatus(msgs[err.code] || 'Something went wrong. Try again.', 'err');
+      submitBtn.disabled = false;
+    }
+  });
+
+  signOutBtn.addEventListener('click', () => signOut(auth));
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      viewOut.style.display = 'none';
+      viewIn.style.display  = 'flex';
+      document.getElementById('displayEmail').textContent =
+        user.email || '—';
+      document.getElementById('displayCreated').textContent =
+        user.metadata.creationTime
+          ? new Date(user.metadata.creationTime).toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' })
+          : '—';
+    } else {
+      viewIn.style.display  = 'none';
+      viewOut.style.display = 'flex';
+      submitBtn.disabled    = false;
+    }
+  });
+</script>
+
+</body>
+</html>
