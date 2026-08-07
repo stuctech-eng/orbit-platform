@@ -75,9 +75,24 @@
   async function loadFromServer() {
     if (typeof global.fetch !== 'function') return applyConfig(getResolvedConfig());
 
-    const response = await global.fetch('/api/firebase-config', {
-      headers: { 'Accept': 'application/json' },
-    });
+    const controller = typeof AbortController === 'function'
+      ? new AbortController()
+      : null;
+    const timeoutId = global.setTimeout
+      ? global.setTimeout(() => {
+          if (controller) controller.abort();
+        }, 1500)
+      : null;
+
+    let response;
+    try {
+      response = await global.fetch('/api/firebase-config', {
+        headers: { 'Accept': 'application/json' },
+        signal: controller ? controller.signal : undefined,
+      });
+    } finally {
+      if (timeoutId) global.clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       return applyConfig(getResolvedConfig());
