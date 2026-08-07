@@ -17,20 +17,20 @@ Live games linken altijd naar hun eigen repo/URL (bijv. ORBIT zelf: `stuctech-en
 - `assets/styles.css`, `assets/ambient-cells.js` — gedeelde stijl + herbruikbare ambient-canvas
 - Plain HTML/CSS/JS, geen framework — zelfde iPhone-first/Working Copy-aanpak als ORBIT zelf
 
-**Fase 2 — Nog te bouwen**
+**Fase 2 — In uitvoering**
 
-- `pages/beta.html` — invite-codes via Firebase Firestore (`beta_codes/{code}`)
-- `pages/account.html`
-- `pages/feedback.html`
-- `/api/check-code.js` (Vercel serverless function)
-- `/api/feedback.js` (Vercel serverless function)
+- ✅ `pages/beta.html` — invite-codes via Firebase Firestore (`beta_codes/{code}`)
+- ✅ `/api/check-code.js` (Vercel serverless function)
+- [ ] `pages/account.html`
+- [ ] `pages/feedback.html`
+- [ ] `/api/feedback.js` (Vercel serverless function)
 - Firebase-schema: zie `ARCHITECTURE.md` (game-agnostisch: `games/`, `users/`, `beta_codes/`, `game_sessions/`, `leaderboards/`, `feedback/`)
 
 ---
 
 ## Volgende stap
 
-Fase 2 starten: Firebase-project koppelen, `beta.html` + `/api/check-code.js` bouwen als eerste onderdeel (invite-flow is de basis waarop account/feedback voortbouwen).
+Firebase-project koppelen (env vars in Vercel: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`) en `firebase-admin` installeren als dependency. Daarna Fase 2 vervolgen: `account.html` + `feedback.html` + `/api/feedback.js`.
 
 ---
 
