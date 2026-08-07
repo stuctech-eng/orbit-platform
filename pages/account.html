@@ -181,17 +181,11 @@
            signInWithEmailAndPassword, signOut,
            onAuthStateChanged }                    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-  const resolvedFirebaseConfig = await (window.__ORBIT_FB_CONFIG_PROMISE__ || Promise.resolve({
+  const initialFirebaseConfig = {
     apiKey:     window.__ORBIT_FB_API_KEY__ || '',
     authDomain: window.__ORBIT_FB_AUTH_DOMAIN__ || '',
     projectId:  window.__ORBIT_FB_PROJECT_ID__ || '',
-  }));
-  const firebaseConfig = {
-    apiKey:     resolvedFirebaseConfig.apiKey || '',
-    authDomain: resolvedFirebaseConfig.authDomain || '',
-    projectId:  resolvedFirebaseConfig.projectId || '',
   };
-  const hasFirebaseConfig = Object.values(firebaseConfig).every(Boolean);
   let auth = null;
 
   // --- UI refs ---
@@ -211,6 +205,43 @@
   function setStatus(msg, type) {
     statusEl.textContent = msg;
     statusEl.className   = 'account-status ' + (type || '');
+  }
+
+  function hasCompleteConfig(config) {
+    return Boolean(config.apiKey && config.authDomain && config.projectId);
+  }
+
+  function enableSignedOutForm() {
+    viewIn.style.display  = 'none';
+    viewOut.style.display = 'flex';
+    submitBtn.disabled    = false;
+  }
+
+  function showMissingConfig() {
+    enableSignedOutForm();
+    submitBtn.disabled = true;
+    setStatus('Firebase client config is not set yet.', 'err');
+  }
+
+  function initialiseAuth(config) {
+    if (auth || !hasCompleteConfig(config)) return;
+    const app = initializeApp(config);
+    auth = getAuth(app);
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        viewOut.style.display = 'none';
+        viewIn.style.display  = 'flex';
+        document.getElementById('displayEmail').textContent =
+          user.email || '—';
+        document.getElementById('displayCreated').textContent =
+          user.metadata.creationTime
+            ? new Date(user.metadata.creationTime).toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' })
+            : '—';
+      } else {
+        enableSignedOutForm();
+      }
+    });
   }
 
   function switchMode(m) {
@@ -272,31 +303,26 @@
     if (auth) signOut(auth);
   });
 
-  if (!hasFirebaseConfig) {
+  if (hasCompleteConfig(initialFirebaseConfig)) {
+    initialiseAuth(initialFirebaseConfig);
+  } else {
     viewIn.style.display  = 'none';
     viewOut.style.display = 'flex';
     submitBtn.disabled    = true;
-    setStatus('Firebase client config is not set yet.', 'err');
-  } else {
-    const app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
+    setStatus('Loading Firebase config…', '');
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        viewOut.style.display = 'none';
-        viewIn.style.display  = 'flex';
-        document.getElementById('displayEmail').textContent =
-          user.email || '—';
-        document.getElementById('displayCreated').textContent =
-          user.metadata.creationTime
-            ? new Date(user.metadata.creationTime).toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' })
-            : '—';
-      } else {
-        viewIn.style.display  = 'none';
-        viewOut.style.display = 'flex';
-        submitBtn.disabled    = false;
-      }
-    });
+    (window.__ORBIT_FB_CONFIG_PROMISE__ || Promise.resolve(initialFirebaseConfig))
+      .then((config) => {
+        if (hasCompleteConfig(config)) {
+          setStatus('', '');
+          initialiseAuth(config);
+        } else {
+          showMissingConfig();
+        }
+      })
+      .catch(() => {
+        showMissingConfig();
+      });
   }
 </script>
 
