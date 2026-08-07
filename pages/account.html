@@ -162,6 +162,7 @@
 
     <div class="btn-row" style="margin-top:36px;">
       <a class="btn btn-primary" href="beta.html">Beta access</a>
+      <a class="btn btn-secondary" href="feedback.html">Feedback</a>
       <a class="btn btn-secondary" href="../games.html">Games</a>
     </div>
   </div>
@@ -171,7 +172,7 @@
   ORBIT Platform · stuctech-eng
 </footer>
 
-<!-- Firebase client config (public values — not secrets) -->
+<!-- Firebase client config (inject via window properties or runtime env bridge) -->
 <script src="../assets/firebase-config.js"></script>
 <!-- Firebase Auth (client SDK via CDN — no build step needed) -->
 <script type="module">
@@ -180,19 +181,13 @@
            signInWithEmailAndPassword, signOut,
            onAuthStateChanged }                    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-  // ---------------------------------------------------------------------------
-  // Firebase config — these values are PUBLIC (client SDK config, not secrets).
-  // They are safe to commit. Security is enforced by Firebase Auth + Firestore rules.
-  // Replace the placeholders with your actual Firebase project values.
-  // ---------------------------------------------------------------------------
   const firebaseConfig = {
-    apiKey:            window.__ORBIT_FB_API_KEY__     || 'REPLACE_WITH_API_KEY',
-    authDomain:        window.__ORBIT_FB_AUTH_DOMAIN__ || 'REPLACE_WITH_PROJECT_ID.firebaseapp.com',
-    projectId:         window.__ORBIT_FB_PROJECT_ID__  || 'REPLACE_WITH_PROJECT_ID',
+    apiKey:     window.__ORBIT_FB_API_KEY__ || '',
+    authDomain: window.__ORBIT_FB_AUTH_DOMAIN__ || '',
+    projectId:  window.__ORBIT_FB_PROJECT_ID__ || '',
   };
-
-  const app  = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+  const hasFirebaseConfig = Object.values(firebaseConfig).every(Boolean);
+  let auth = null;
 
   // --- UI refs ---
   const viewOut    = document.getElementById('viewSignedOut');
@@ -234,6 +229,10 @@
 
   document.getElementById('accountForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!auth) {
+      setStatus('Firebase client config is not set yet.', 'err');
+      return;
+    }
     const email = emailInput.value.trim();
     const pw    = pwInput.value;
     if (!email || !pw) { setStatus('Please fill in all fields.', 'err'); return; }
@@ -264,24 +263,36 @@
     }
   });
 
-  signOutBtn.addEventListener('click', () => signOut(auth));
-
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      viewOut.style.display = 'none';
-      viewIn.style.display  = 'flex';
-      document.getElementById('displayEmail').textContent =
-        user.email || '—';
-      document.getElementById('displayCreated').textContent =
-        user.metadata.creationTime
-          ? new Date(user.metadata.creationTime).toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' })
-          : '—';
-    } else {
-      viewIn.style.display  = 'none';
-      viewOut.style.display = 'flex';
-      submitBtn.disabled    = false;
-    }
+  signOutBtn.addEventListener('click', () => {
+    if (auth) signOut(auth);
   });
+
+  if (!hasFirebaseConfig) {
+    viewIn.style.display  = 'none';
+    viewOut.style.display = 'flex';
+    submitBtn.disabled    = true;
+    setStatus('Firebase client config is not set yet.', 'err');
+  } else {
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        viewOut.style.display = 'none';
+        viewIn.style.display  = 'flex';
+        document.getElementById('displayEmail').textContent =
+          user.email || '—';
+        document.getElementById('displayCreated').textContent =
+          user.metadata.creationTime
+            ? new Date(user.metadata.creationTime).toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' })
+            : '—';
+      } else {
+        viewIn.style.display  = 'none';
+        viewOut.style.display = 'flex';
+        submitBtn.disabled    = false;
+      }
+    });
+  }
 </script>
 
 </body>
