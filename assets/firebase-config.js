@@ -72,10 +72,18 @@
     };
   }
 
-  async function loadFromServer() {
+  function dispatchConfigEvent(config) {
+    if (typeof global.dispatchEvent !== 'function' || typeof global.CustomEvent !== 'function') return;
+    global.dispatchEvent(new global.CustomEvent('orbit:firebase-config', {
+      detail: config,
+    }));
+  }
+
+  async function loadFromServer(signal) {
     if (typeof global.fetch !== 'function') return applyConfig(getResolvedConfig());
     const response = await global.fetch('/api/firebase-config', {
       headers: { 'Accept': 'application/json' },
+      signal,
     });
 
     if (!response.ok) {
@@ -93,8 +101,34 @@
     return applyConfig(getResolvedConfig());
   }
 
+  async function loadFromServerWithTimeout(timeoutMs) {
+    if (typeof global.AbortController !== 'function' || typeof global.setTimeout !== 'function') {
+      const config = await loadFromServer();
+      dispatchConfigEvent(config);
+      return config;
+    }
+
+    const controller = new global.AbortController();
+    const timeoutId = global.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const config = await loadFromServer(controller.signal);
+      dispatchConfigEvent(config);
+      return config;
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        loadFromServer()
+          .then((config) => dispatchConfigEvent(config))
+          .catch(() => {});
+      }
+      throw error;
+    } finally {
+      global.clearTimeout(timeoutId);
+    }
+  }
+
   const initialConfig = applyConfig(getResolvedConfig());
   global.__ORBIT_FB_CONFIG_PROMISE__ = global.__ORBIT_FB_CONFIG_READY__
     ? Promise.resolve(initialConfig)
-    : loadFromServer().catch(() => initialConfig);
+    : loadFromServerWithTimeout(4000).catch(() => initialConfig);
 })(window);

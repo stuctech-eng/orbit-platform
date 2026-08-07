@@ -306,22 +306,20 @@
     }
   });
 
+  window.addEventListener('orbit:firebase-config', (event) => {
+    const config = event.detail || {};
+    if (!hasCompleteConfig(config)) return;
+    setSignedOutStatus('', '');
+    initialiseAuth(config);
+  });
+
   if (hasCompleteConfig(initialFirebaseConfig)) {
     initialiseAuth(initialFirebaseConfig);
   } else {
     showSignedOut('Loading Firebase config…');
 
-    let configLoadSettled = false;
-    const configTimeout = window.setTimeout(() => {
-      if (!configLoadSettled) {
-        setSignedOutStatus('Still loading Firebase config… Reload if this persists.', '');
-      }
-    }, 4000);
-
     (window.__ORBIT_FB_CONFIG_PROMISE__ || Promise.resolve(initialFirebaseConfig))
       .then((config) => {
-        configLoadSettled = true;
-        window.clearTimeout(configTimeout);
         if (hasCompleteConfig(config)) {
           setSignedOutStatus('', '');
           initialiseAuth(config);
@@ -330,8 +328,6 @@
         }
       })
       .catch(() => {
-        configLoadSettled = true;
-        window.clearTimeout(configTimeout);
         showMissingConfig();
       });
   }
