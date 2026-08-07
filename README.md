@@ -30,7 +30,7 @@ Live games linken altijd naar hun eigen repo/URL (bijv. ORBIT zelf: `stuctech-en
 
 ## Volgende stap
 
-Publieke Firebase clientconfig injecteren via runtime window-properties of environment bridge (`assets/firebase-config.js`) en in Vercel de server-side env vars instellen: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`.
+Publieke Firebase clientconfig beschikbaar maken via runtime window-properties of `/api/firebase-config` (`ORBIT_FB_API_KEY`/`FIREBASE_API_KEY`, `ORBIT_FB_AUTH_DOMAIN`/`FIREBASE_AUTH_DOMAIN`, `ORBIT_FB_PROJECT_ID`/`FIREBASE_PROJECT_ID`) en in Vercel de server-side admin env vars instellen: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`.
 
 ---
 

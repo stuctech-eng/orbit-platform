@@ -181,10 +181,15 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-  const firebaseConfig = {
+  const resolvedFirebaseConfig = await (window.__ORBIT_FB_CONFIG_PROMISE__ || Promise.resolve({
     apiKey:     window.__ORBIT_FB_API_KEY__ || '',
     authDomain: window.__ORBIT_FB_AUTH_DOMAIN__ || '',
     projectId:  window.__ORBIT_FB_PROJECT_ID__ || '',
+  }));
+  const firebaseConfig = {
+    apiKey:     resolvedFirebaseConfig.apiKey || '',
+    authDomain: resolvedFirebaseConfig.authDomain || '',
+    projectId:  resolvedFirebaseConfig.projectId || '',
   };
 
   const hasFirebaseConfig = Object.values(firebaseConfig).every(Boolean);
