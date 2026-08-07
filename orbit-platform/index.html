@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT — Train your focus. Train your memory.</title>
+<meta name="description" content="ORBIT is a minimalist cognitive training platform. A scanner reveals, your memory decides.">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<nav class="platform-nav">
+  <span class="wordmark">ORBIT</span>
+  <div class="links">
+    <a href="pages/about.html">About</a>
+    <a href="games.html">Games</a>
+  </div>
+</nav>
+
+<section class="section" style="padding-top:0;">
+  <canvas class="ambient" id="heroCells"></canvas>
+  <div class="section-inner">
+    <h1 class="wordmark-xl">ORBIT</h1>
+    <p class="lead">Train your focus.<br>Train your memory.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="pages/demo.html">Try the demo</a>
+      <a class="btn btn-secondary" href="pages/about.html">What is ORBIT</a>
+    </div>
+  </div>
+  <div class="scroll-hint">Scroll</div>
+</section>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="eyebrow">The idea</div>
+    <h2>A scanner reveals.<br>Your memory decides.</h2>
+    <p class="body" style="max-width:440px;margin:0 auto;">
+      No scores flashing mid-game. No timers pressuring you. Just a calm,
+      moving field of cells — and one that briefly went dark, that only
+      you remember.
+    </p>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script src="assets/ambient-cells.js"></script>
+<script>initAmbientCells('heroCells', 3);</script>
+</body>
+</html>

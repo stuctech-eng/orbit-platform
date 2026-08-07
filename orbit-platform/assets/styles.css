@@ -1,0 +1,189 @@
+/* ORBIT Platform — shared styles
+   Monochrome by design (see ORBIT_DESIGN_BIBLE.md — colour was explicitly
+   considered and rejected for the game itself). The platform continues
+   that same discipline: pure black, pure white, no accent hue. */
+
+:root {
+  --black: #000000;
+  --white: #ffffff;
+  --dim-60: rgba(255,255,255,0.6);
+  --dim-40: rgba(255,255,255,0.4);
+  --dim-25: rgba(255,255,255,0.25);
+  --dim-12: rgba(255,255,255,0.12);
+  --dim-06: rgba(255,255,255,0.06);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--black);
+  color: var(--white);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ---------- Nav ---------- */
+.platform-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(20px, env(safe-area-inset-top)) 24px 16px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+}
+.platform-nav .wordmark {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  color: var(--white);
+}
+.platform-nav .links {
+  display: flex;
+  gap: 22px;
+  font-size: 13px;
+  color: var(--dim-40);
+}
+.platform-nav .links a:hover,
+.platform-nav .links a:active { color: var(--white); }
+
+/* ---------- Layout ---------- */
+.section {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px 60px;
+  position: relative;
+}
+.section-inner {
+  max-width: 640px;
+  width: 100%;
+  text-align: center;
+}
+
+/* ---------- Typography ---------- */
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--dim-40);
+  margin-bottom: 18px;
+}
+h1.wordmark-xl {
+  font-size: clamp(40px, 12vw, 64px);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  margin: 0 0 20px;
+}
+h2 {
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin: 0 0 14px;
+}
+p.lead {
+  font-size: clamp(16px, 3.6vw, 19px);
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--dim-60);
+  margin: 0 0 36px;
+}
+p.body {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--dim-60);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 32px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.btn-primary {
+  background: var(--white);
+  color: var(--black);
+}
+.btn-primary:active { background: rgba(255,255,255,0.85); }
+.btn-secondary {
+  background: var(--dim-06);
+  border: 1px solid var(--dim-25);
+  color: var(--white);
+}
+.btn-secondary:active { background: var(--dim-12); }
+.btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+
+/* ---------- Cards (About page) ---------- */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  text-align: left;
+  margin-top: 40px;
+}
+@media (min-width: 700px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); text-align: center; }
+}
+.card {
+  border: 1px solid var(--dim-12);
+  border-radius: 18px;
+  padding: 28px 24px;
+  background: var(--dim-06);
+}
+.card .glyph { font-size: 26px; margin-bottom: 14px; display: block; }
+.card h3 { font-size: 16px; font-weight: 500; margin: 0 0 8px; }
+.card p { font-size: 14px; font-weight: 300; line-height: 1.6; color: var(--dim-60); margin: 0; }
+
+/* ---------- Scroll hint ---------- */
+.scroll-hint {
+  position: absolute;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim-25);
+  animation: hintFloat 2.4s ease-in-out infinite;
+}
+@keyframes hintFloat {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(6px); opacity: 1; }
+}
+
+/* ---------- Ambient canvas (hero cells) ---------- */
+canvas.ambient {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+.section > .section-inner { position: relative; z-index: 1; }
+
+/* ---------- Footer ---------- */
+.platform-footer {
+  padding: 40px 24px max(40px, env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 12px;
+  color: var(--dim-25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint { animation: none; }
+}
