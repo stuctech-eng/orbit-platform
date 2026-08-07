@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT — Beta access</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .code-form { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  .code-input {
+    width: 100%; max-width: 320px;
+    min-height: 54px;
+    text-align: center;
+    font-size: 20px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    background: var(--dim-06);
+    border: 1px solid var(--dim-25);
+    border-radius: 14px;
+    color: var(--white);
+    padding: 0 16px;
+  }
+  .code-input:focus { outline: none; border-color: var(--white); }
+  .status-msg {
+    font-size: 14px;
+    font-weight: 300;
+    min-height: 20px;
+    margin-top: 4px;
+  }
+  .status-msg.error { color: rgba(255,120,120,0.9); }
+  .status-msg.success { color: rgba(140,255,180,0.9); }
+  .btn-primary:disabled { opacity: 0.4; }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="about.html">About</a>
+    <a href="../games.html">Games</a>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="eyebrow">Beta access</div>
+    <h2>Enter your invite code.</h2>
+    <p class="lead">
+      ORBIT is currently invite-only. If you've received a code, enter it
+      below to unlock beta access.
+    </p>
+
+    <form class="code-form" id="betaForm" autocomplete="off">
+      <input
+        class="code-input"
+        id="codeInput"
+        name="code"
+        type="text"
+        inputmode="text"
+        maxlength="12"
+        placeholder="CODE"
+        aria-label="Invite code"
+        required
+      >
+      <button class="btn btn-primary" type="submit" id="submitBtn">Unlock</button>
+      <div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script>
+(function () {
+  var form = document.getElementById('betaForm');
+  var input = document.getElementById('codeInput');
+  var btn = document.getElementById('submitBtn');
+  var status = document.getElementById('statusMsg');
+
+  function setStatus(text, type) {
+    status.textContent = text;
+    status.className = 'status-msg' + (type ? ' ' + type : '');
+  }
+
+  function getOrCreateClientId() {
+    var key = 'orbit_client_id';
+    var id = localStorage.getItem(key);
+    if (!id) {
+      id = 'c_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(key, id);
+    }
+    return id;
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var code = input.value.trim();
+    if (!code) return;
+
+    btn.disabled = true;
+    setStatus('Checking…', '');
+
+    try {
+      var res = await fetch('/api/check-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code, clientId: getOrCreateClientId() })
+      });
+      var data = await res.json();
+
+      if (res.ok && data.valid) {
+        localStorage.setItem('orbit_beta_session', JSON.stringify({
+          code: code.trim().toUpperCase(),
+          games: data.games || [],
+          unlockedAt: Date.now()
+        }));
+        setStatus('Access granted. Redirecting…', 'success');
+        setTimeout(function () {
+          window.location.href = 'account.html';
+        }, 700);
+      } else {
+        setStatus(data.error || 'Invalid code.', 'error');
+        btn.disabled = false;
+      }
+    } catch (err) {
+      setStatus('Connection error. Please try again.', 'error');
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT — Account</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: var(--dim-06);
+    border: 1px solid var(--dim-12);
+    font-size: 13px;
+    color: var(--dim-60);
+    margin-bottom: 28px;
+  }
+  .status-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(140,255,180,0.9); }
+  .status-pill.locked .dot { background: var(--dim-40); }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="../games.html">Games</a>
+    <a href="feedback.html">Feedback</a>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="section-inner" id="accountView">
+    <!-- gevuld door script -->
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script>
+(function () {
+  var view = document.getElementById('accountView');
+  var raw = localStorage.getItem('orbit_beta_session');
+  var session = null;
+
+  try { session = raw ? JSON.parse(raw) : null; } catch (e) { session = null; }
+
+  if (!session || !session.code) {
+    view.innerHTML =
+      '<div class="eyebrow">Account</div>' +
+      '<h2>No active beta access.</h2>' +
+      '<p class="lead">Enter your invite code to unlock ORBIT beta.</p>' +
+      '<div class="btn-row"><a class="btn btn-primary" href="beta.html">Enter invite code</a></div>';
+    return;
+  }
+
+  var games = Array.isArray(session.games) ? session.games : [];
+  var gamesHtml = games.length
+    ? games.map(function (g) {
+        return '<div class="card"><span class="glyph">&#9899;</span><h3>' +
+          g + '</h3><p>Unlocked via your beta code.</p></div>';
+      }).join('')
+    : '<p class="body">No games linked to this code yet.</p>';
+
+  view.innerHTML =
+    '<div class="status-pill"><span class="dot"></span>Beta access active</div>' +
+    '<h2>Welcome back.</h2>' +
+    '<p class="lead">Your invite code <strong>' + session.code + '</strong> is active on this device.</p>' +
+    '<div class="card-grid">' + gamesHtml + '</div>' +
+    '<div class="btn-row" style="margin-top:40px;">' +
+      '<a class="btn btn-primary" href="../games.html">Go to games</a>' +
+      '<a class="btn btn-secondary" href="feedback.html">Send feedback</a>' +
+    '</div>';
+})();
+</script>
+</body>
+</html>

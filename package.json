@@ -1,0 +1,9 @@
+{
+  "name": "orbit-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ORBIT Platform — portal/website, no game code (see ARCHITECTURE.md).",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

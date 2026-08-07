@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT — Feedback</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .feedback-form { margin-top: 32px; display: flex; flex-direction: column; gap: 14px; text-align: left; }
+  .feedback-form label { font-size: 13px; color: var(--dim-40); margin-bottom: -6px; }
+  .feedback-form textarea,
+  .feedback-form input {
+    width: 100%;
+    background: var(--dim-06);
+    border: 1px solid var(--dim-25);
+    border-radius: 14px;
+    color: var(--white);
+    padding: 14px 16px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .feedback-form textarea { min-height: 140px; resize: vertical; }
+  .feedback-form textarea:focus,
+  .feedback-form input:focus { outline: none; border-color: var(--white); }
+  .status-msg { font-size: 14px; font-weight: 300; min-height: 20px; margin-top: 4px; }
+  .status-msg.error { color: rgba(255,120,120,0.9); }
+  .status-msg.success { color: rgba(140,255,180,0.9); }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="../games.html">Games</a>
+    <a href="account.html">Account</a>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="eyebrow">Feedback</div>
+    <h2>Tell us what's working.<br>And what isn't.</h2>
+    <p class="lead">Short and honest is perfect. We read everything.</p>
+
+    <form class="feedback-form" id="feedbackForm">
+      <label for="message">Your feedback</label>
+      <textarea id="message" name="message" placeholder="What did you notice?" required></textarea>
+
+      <label for="contact">Contact (optional)</label>
+      <input id="contact" name="contact" type="text" placeholder="Email, if you'd like a reply">
+
+      <div class="btn-row" style="justify-content:flex-start; margin-top:6px;">
+        <button class="btn btn-primary" type="submit" id="submitBtn">Send feedback</button>
+      </div>
+      <div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script>
+(function () {
+  var form = document.getElementById('feedbackForm');
+  var btn = document.getElementById('submitBtn');
+  var status = document.getElementById('statusMsg');
+
+  function setStatus(text, type) {
+    status.textContent = text;
+    status.className = 'status-msg' + (type ? ' ' + type : '');
+  }
+
+  function getGameContext() {
+    try {
+      var session = JSON.parse(localStorage.getItem('orbit_beta_session') || 'null');
+      return session && session.games && session.games[0] ? session.games[0] : null;
+    } catch (e) { return null; }
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var message = document.getElementById('message').value.trim();
+    var contact = document.getElementById('contact').value.trim();
+
+    if (message.length < 3) {
+      setStatus('Please write a bit more.', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    setStatus('Sending…', '');
+
+    try {
+      var res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: message,
+          contact: contact || null,
+          gameId: getGameContext()
+        })
+      });
+      var data = await res.json();
+
+      if (res.ok && data.success) {
+        setStatus('Thank you — feedback received.', 'success');
+        form.reset();
+      } else {
+        setStatus(data.error || 'Something went wrong.', 'error');
+      }
+    } catch (err) {
+      setStatus('Connection error. Please try again.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
