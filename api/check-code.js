@@ -1,16 +1,19 @@
 const admin = require('firebase-admin');
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-    }),
-  });
+let initError = null;
+try {
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+      }),
+    });
+  }
+} catch (err) {
+  initError = err;
 }
-
-const db = admin.firestore();
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -18,6 +21,15 @@ module.exports = async (req, res) => {
     return;
   }
 
+  if (initError) {
+    res.status(500).json({
+      valid: false,
+      error: 'Firebase-configuratie ontbreekt of is onjuist op Vercel: ' + initError.message,
+    });
+    return;
+  }
+
+  const db = admin.firestore();
   const { code, clientId } = req.body || {};
 
   if (!code || typeof code !== 'string') {

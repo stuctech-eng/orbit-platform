@@ -103,16 +103,25 @@
           gameId: getGameContext()
         })
       });
-      var data = await res.json();
+
+      var rawText = await res.text();
+      var data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        setStatus('Server error (HTTP ' + res.status + '): ' + rawText.slice(0, 200), 'error');
+        btn.disabled = false;
+        return;
+      }
 
       if (res.ok && data.success) {
         setStatus('Thank you — feedback received.', 'success');
         form.reset();
       } else {
-        setStatus(data.error || 'Something went wrong.', 'error');
+        setStatus(data.error || ('Something went wrong (HTTP ' + res.status + ').'), 'error');
       }
     } catch (err) {
-      setStatus('Connection error. Please try again.', 'error');
+      setStatus('Network error: ' + (err && err.message ? err.message : String(err)), 'error');
     } finally {
       btn.disabled = false;
     }
