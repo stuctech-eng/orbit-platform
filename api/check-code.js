@@ -50,28 +50,41 @@ export default async function handler(req, res) {
   try {
     const db  = getDb();
     const ref = db.collection('beta_codes').doc(normalised);
-    const doc = await ref.get();
+    const result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(ref);
 
-    if (!doc.exists) {
-      return res.status(200).json({ valid: false, message: 'Code not recognised. Check for typos.' });
+      if (!doc.exists) {
+        return { valid: false, message: 'Code not recognised. Check for typos.' };
+      }
+
+      const data = doc.data();
+
+      if (data.status !== 'active') {
+        return { valid: false, message: 'This code has been revoked.' };
+      }
+
+      if (data.expires && data.expires.toDate() < new Date()) {
+        return { valid: false, message: 'This code has expired.' };
+      }
+
+      if (data.usedBy) {
+        return { valid: false, message: 'This code has already been used.' };
+      }
+
+      transaction.update(ref, {
+        usedBy: normalised,
+        usedAt: FieldValue.serverTimestamp(),
+      });
+
+      return { valid: true, data };
+    });
+
+    if (!result.valid) {
+      return res.status(200).json(result);
     }
-
-    const data = doc.data();
-
-    if (data.status !== 'active') {
-      return res.status(200).json({ valid: false, message: 'This code has been revoked.' });
-    }
-
-    if (data.expires && data.expires.toDate() < new Date()) {
-      return res.status(200).json({ valid: false, message: 'This code has expired.' });
-    }
-
-    // Mark as used (non-blocking — don't let a write failure block the user)
-    ref.update({ usedBy: data.usedBy || normalised, usedAt: FieldValue.serverTimestamp() })
-       .catch(() => {/* fire-and-forget */});
 
     // Return the first matching game URL (codes can unlock multiple games)
-    const games   = Array.isArray(data.games) ? data.games : ['orbit'];
+    const games   = Array.isArray(result.data.games) ? result.data.games : ['orbit'];
     const gameUrl = GAME_URLS[games[0]] || GAME_URLS.orbit;
 
     return res.status(200).json({ valid: true, games, gameUrl });

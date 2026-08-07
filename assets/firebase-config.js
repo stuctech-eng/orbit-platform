@@ -108,22 +108,21 @@
       return config;
     }
 
-    const controller = new global.AbortController();
-    const timeoutId = global.setTimeout(() => controller.abort(), timeoutMs);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const controller = new global.AbortController();
+      const timeoutId = global.setTimeout(() => controller.abort(), timeoutMs);
 
-    try {
-      const config = await loadFromServer(controller.signal);
-      dispatchConfigEvent(config);
-      return config;
-    } catch (error) {
-      if (error && error.name === 'AbortError') {
-        loadFromServer()
-          .then((config) => dispatchConfigEvent(config))
-          .catch(() => {});
+      try {
+        const config = await loadFromServer(controller.signal);
+        dispatchConfigEvent(config);
+        return config;
+      } catch (error) {
+        if (!error || error.name !== 'AbortError' || attempt === 1) {
+          throw error;
+        }
+      } finally {
+        global.clearTimeout(timeoutId);
       }
-      throw error;
-    } finally {
-      global.clearTimeout(timeoutId);
     }
   }
 

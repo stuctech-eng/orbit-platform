@@ -8,6 +8,10 @@ function readEnv(...keys) {
   return '';
 }
 
+function hasAnyConfig(config) {
+  return Boolean(config.apiKey || config.authDomain || config.projectId);
+}
+
 export default function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -34,6 +38,11 @@ export default function handler(req, res) {
     ),
   };
 
-  res.setHeader('Cache-Control', 'no-store');
+  if (!hasAnyConfig(config)) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(503).json({ error: 'Firebase client config is not set yet.' });
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=300');
   return res.status(200).json(config);
 }
