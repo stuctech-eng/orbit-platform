@@ -25,8 +25,14 @@
       <div class="card" style="grid-column: 1 / -1;">
         <h3 style="font-size:20px;">ORBIT</h3>
         <p style="margin-bottom:20px;">A minimalist memory scanner. Available now.</p>
-        <div class="btn-row" style="justify-content:flex-start;">
-          <a class="btn btn-primary" href="pages/demo.html">Try the demo</a>
+        <div class="btn-row" style="justify-content:flex-start;" id="orbitCta">
+          <!-- v2.4.1 (Stap 1, portal-flow-fix): gevuld door script hieronder.
+               Geen enkele wijziging aan beta.html/check-code.js/Firebase-
+               schema/de echte ORBIT-game — puur navigatie op deze pagina.
+               NIET beveiliging: localStorage is client-side en door de
+               gebruiker aan te passen. De echte toegangscontrole moet in
+               de game zelf komen (AccessController, apart ontwerp, nog
+               niet gebouwd — zie docs/access-controller-v1-onderzoek.md). -->
         </div>
       </div>
     </div>
@@ -38,6 +44,33 @@
 <footer class="platform-footer">
   ORBIT Platform · stuctech-eng
 </footer>
+
+<script>
+(function () {
+  // v2.4.1 — centrale configuratie, één plek binnen dit bestand i.p.v.
+  // verspreid hardcoden. Als een tweede bestand deze URL ooit ook nodig
+  // heeft, hoort dit naar een gedeeld config-bestand te verhuizen — nu
+  // nog niet nodig, scope van Stap 1 is bewust beperkt tot dit bestand.
+  var ORBIT_GAME_URL = 'https://orbit-rho-ruby.vercel.app/';
+
+  var cta = document.getElementById('orbitCta');
+  var raw = localStorage.getItem('orbit_beta_session');
+  var session = null;
+  try { session = raw ? JSON.parse(raw) : null; } catch (e) { session = null; }
+
+  // Zelfde geldigheidscheck als account.html (session.code aanwezig) —
+  // niet opnieuw verzonnen, bewust hetzelfde criterium.
+  var heeftGeldigeSessie = !!(session && session.code);
+
+  if (heeftGeldigeSessie) {
+    cta.innerHTML = '<a class="btn btn-primary" href="' + ORBIT_GAME_URL + '">Play ORBIT</a>' +
+      '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
+  } else {
+    cta.innerHTML = '<a class="btn btn-primary" href="pages/beta.html">Enter beta code</a>' +
+      '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
+  }
+})();
+</script>
 
 </body>
 </html>
