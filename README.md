@@ -32,25 +32,46 @@ lezen, dan verder bij "Volgende stap", niet opnieuw om richting vragen.
       **Nadrukkelijk: dit is UX/navigatie, GEEN beveiliging** —
       localStorage is client-side aanpasbaar. De echte controle moet
       in de game zelf komen (zie hieronder).
-- [ ] **Stap 8 — AccessController ontwerpen.**
-      Onderzoeksplan met de tien te beantwoorden vragen staat klaar:
-      `docs/access-controller-v1-onderzoek.md`. **Nog niet
-      beantwoord, nog geen code.** Dit vergt eerst antwoorden op alle
-      tien vragen (hoe wordt de sessie opgeslagen, hoe lang geldig,
-      cryptografische validatie, wat bij een directe game-URL, etc.),
-      dan een apart "Technisch Ontwerp"-document, en pas ná
-      goedkeuring code in de `orbit`-repo.
-- [ ] Stap 9 — Firebase data model + secure API voor access-validatie
-      uitbreiden (expiration, revocation) — volgt uit stap 8
+- [x] **Stap 8 — AccessController ontwerpen.**
+      Alle tien onderzoeksvragen beantwoord met bewijs uit de bestaande
+      code, geen aannames: `docs/access-controller-v1-technisch-ontwerp.md`.
+      **Kernvondsten tijdens het onderzoek:**
+      - Bevestigd, ook live getest door de gebruiker (8 augustus 2026):
+        de directe game-URL is volledig open, geen enkele controle —
+        precies het gat uit de audit, nu ook handmatig bevestigd
+      - Nieuw gat gevonden, niet eerder opgemerkt: een lokale
+        beta-sessie is momenteel **voor altijd geldig** na één check —
+        nooit een hernieuwde controle, ook niet als de onderliggende
+        code in Firestore verloopt/wordt ingetrokken
+      - Nieuw gat gevonden: `check-code.js` handhaaft geen `maxUses`,
+        ondanks dat de spec dit als kernveld beschrijft — een code kan
+        nu onbeperkt vaak gebruikt worden
+      - Ontwerp: signed JWT-token (nieuw secret,
+        `ACCESS_TOKEN_SECRET`) uitgegeven door het platform bij een
+        geldige code, meegegeven aan "Play ORBIT" als
+        `?token=...`. Game krijgt een eigen, kleine
+        `api/verify-token.js` — verifieert alleen de handtekening,
+        heeft zelf GEEN Firestore-toegang nodig (voldoet aan spec §14
+        én "game beheert nooit zelf codes")
+      - AccessController als nieuwe overlay (`#accessGate`), naar het
+        voorbeeld van de al-bestaande overlay-patronen in de game
+        zelf (welkomstscherm/pauzemenu/tutorial) — **de bestaande
+        2085-regel game-IIFE wordt geen letter gewijzigd**
+      - Eerlijk benoemde beperking: dit ontwerp lost het "directe
+        URL"-probleem op, niet het "doorgestuurde token"-scenario
+        volledig — dat vergt de aparte `maxUses`-fix
+      **Nog geen code in de `orbit`-repo — wacht op expliciet akkoord
+      van de gebruiker op dit ontwerp.**
+- [ ] Stap 9 — implementatie (5 concrete deelstappen, staan in het
+      technisch ontwerp) — volgt na akkoord op Stap 8
 - [ ] Stap 10 — Admin Console — Fase 4, nog niet gestart
 
 ### Volgende stap
-De tien onderzoeksvragen uit `docs/access-controller-v1-onderzoek.md`
-één voor één beantwoorden, met bewijs uit de bestaande code — geen
-aannames. Resultaat: een apart "AccessController v1 — Technisch
-Ontwerp"-document. **Pas na expliciet akkoord van de gebruiker op dát
-ontwerp mag er code in de `orbit`-game-repo veranderen** — dat repo
-blijft tot dan toe volledig onaangeraakt.
+Het technisch ontwerp (`docs/access-controller-v1-technisch-ontwerp.md`)
+ter goedkeuring voorleggen aan de gebruiker. **Pas na expliciet
+akkoord mag er code in de `orbit`-game-repo veranderen** — dat repo
+blijft tot dan toe volledig onaangeraakt. Bij akkoord: de vijf
+deelstappen aan het einde van dat document, in volgorde.
 
 ---
 

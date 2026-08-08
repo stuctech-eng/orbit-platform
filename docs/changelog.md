@@ -21,3 +21,21 @@ Bijgehouden per feature/fix, nieuwste bovenaan — staande opdracht, geen aparte
 
 **AccessController-onderzoeksplan vastgelegd** — `docs/access-controller-v1-onderzoek.md`. Tien vragen (opslag, geldigheidsduur, identificatie, cryptografische validatie, expiration, directe-URL-scenario, doorgestuurde-URL-scenario, multi-game-herbruikbaarheid, engine-scheiding), nog geen van alle beantwoord. **Geen code in de `orbit`-game-repo tot elke vraag beantwoord is én de gebruiker akkoord geeft op het resulterende Technisch Ontwerp.**
 
+
+## Fase 3, Stap 2 — AccessController Technisch Ontwerp (8 augustus 2026)
+
+**Alle tien onderzoeksvragen beantwoord** — `docs/access-controller-v1-technisch-ontwerp.md`. Elke vraag met bewijs uit de bestaande code (`beta.html`, `check-code.js`, `orbit`-repo's `index.html`), geen aannames.
+
+**Twee nieuwe gaten gevonden tijdens het onderzoek zelf, niet eerder opgemerkt:**
+1. Een lokale beta-sessie is momenteel **voor altijd geldig** na één succesvolle code-check — nooit een hernieuwde controle, ook niet als de code later verloopt of wordt ingetrokken in Firestore.
+2. `check-code.js` handhaaft geen `maxUses` — een code kan op dit moment onbeperkt vaak gebruikt worden, ondanks dat de spec dit als kernveld van een access-code beschrijft (§11).
+
+**Live bevestigd door de gebruiker (8 augustus 2026):** de directe game-URL (`https://orbit-rho-ruby.vercel.app/`) is inderdaad volledig open — getest door de URL in een nieuw, leeg privé-tabblad te openen na het spelen via de portal-flow. Geen enkele controle, exact het scenario dat de audit al voorspelde.
+
+**Ontwerp, kernpunten:**
+- Signed JWT-token (nieuw secret `ACCESS_TOKEN_SECRET`), uitgegeven door `check-code.js` bij een geldige code, meegegeven aan "Play ORBIT" als `?token=...`
+- Nieuwe, kleine `api/verify-token.js` in de `orbit`-repo — verifieert alleen de handtekening, heeft zelf geen Firestore-toegang nodig
+- AccessController als nieuwe overlay (`#accessGate`), naar het voorbeeld van de al-bestaande overlay-patronen (welkomstscherm/pauzemenu/tutorial) in de game zelf — **de bestaande 2085-regel game-IIFE wordt geen letter gewijzigd**
+- Eerlijk benoemde beperking: lost het "directe URL"-probleem op, niet het "doorgestuurde token"-scenario volledig (vergt de aparte maxUses-fix)
+
+**Status: ontwerp compleet, ter goedkeuring. Nog GEEN code in de `orbit`-game-repo — wacht op expliciet akkoord.**
