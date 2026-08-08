@@ -16,23 +16,23 @@ Live games linken altijd naar hun eigen repo/URL (bijv. ORBIT zelf: `stuctech-en
 - `games.html` — overzicht, nu alleen ORBIT, klaar voor uitbreiding
 - `assets/styles.css`, `assets/ambient-cells.js` — gedeelde stijl + herbruikbare ambient-canvas
 
-**Fase 2 — Gebouwd, wacht op Firebase-koppeling**
+**Fase 2 — Live en geverifieerd** (7 augustus 2026)
 
-- `pages/beta.html` — invite-code formulier, checkt tegen `/api/check-code`
-- `pages/account.html` — leest lokale beta-sessie (`localStorage`), toont ontgrendelde games
-- `pages/feedback.html` — feedbackformulier naar `/api/feedback`
-- `api/check-code.js` — Vercel serverless function, valideert code tegen Firestore `beta_codes/{code}`
-- `api/feedback.js` — Vercel serverless function, schrijft naar Firestore `feedback/{id}`
+- `pages/beta.html` — invite-code formulier, checkt tegen `/api/check-code` ✅ getest, werkt
+- `pages/account.html` — leest lokale beta-sessie (`localStorage`), toont ontgrendelde games ✅ getest, werkt
+- `pages/feedback.html` — feedbackformulier naar `/api/feedback` ✅ getest, werkt (schrijft naar Firestore `feedback/{id}`)
+- `api/check-code.js` — Vercel serverless function, valideert code tegen Firestore `beta_codes/{code}` ✅ live
+- `api/feedback.js` — Vercel serverless function, schrijft naar Firestore `feedback/{id}` ✅ live
 - `package.json` — `firebase-admin` dependency voor de API-routes
-- `.env.example` — welke Vercel environment variables nodig zijn
+- Firebase-project: `orbit-platform-3ec4a`, service account gekoppeld via Vercel Environment Variables
+- Eén Vercel-project actief: `orbit-platform` (`orbit-platform-nine.vercel.app`) — duplicaat `orbit-platform-ohfk` is verwijderd
 
-### Nog te doen voordat Fase 2 live werkt
+### Volgende stap
 
-1. Firebase-project aanmaken (of bestaand project gebruiken) met Firestore ingeschakeld
-2. Service account genereren: Firebase Console → Project Settings → Service accounts → Generate new private key
-3. De 3 velden uit die JSON (`project_id`, `client_email`, `private_key`) invullen als Environment Variables in Vercel — zie `.env.example`. **Nooit** als bestand committen.
-4. Minstens één test-document aanmaken in Firestore: `beta_codes/TESTCODE` met `{ status: "active", games: ["orbit"] }`
-5. Testen: `pages/beta.html` → code invoeren → moet doorsturen naar `account.html`
+Fase 2 basis staat. Mogelijke vervolgstappen:
+- Extra beta-codes aanmaken in Firestore voor echte testers (naast `TEST2026`)
+- `pages/account.html` uitbreiden zodra er meer dan één game aan het platform hangt
+- Overwegen: rate-limiting of eenmalig-gebruik op `beta_codes` als misbruik een zorg wordt
 
 ---
 
