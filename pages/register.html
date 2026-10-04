@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT — Create account</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .auth-form { margin-top: 36px; display: flex; flex-direction: column; gap: 14px; text-align: left; }
+  .auth-form label { font-size: 13px; color: var(--dim-40); margin-bottom: -6px; }
+  .auth-form input {
+    width: 100%;
+    min-height: 52px;
+    background: var(--dim-06);
+    border: 1px solid var(--dim-25);
+    border-radius: 14px;
+    color: var(--white);
+    padding: 0 16px;
+    font-size: 16px;
+  }
+  .auth-form input:focus { outline: none; border-color: var(--white); }
+  .status-msg { font-size: 14px; font-weight: 300; min-height: 20px; margin-top: 4px; }
+  .status-msg.error { color: rgba(255,120,120,0.9); }
+  .status-msg.success { color: rgba(140,255,180,0.9); }
+  .switch-link { margin-top: 24px; font-size: 14px; color: var(--dim-40); }
+  .switch-link a { color: var(--white); text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="../games.html">Games</a>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="section-inner" id="view">
+    <div class="eyebrow">Create account</div>
+    <h2>One account.<br>Every ORBIT game.</h2>
+    <p class="lead">Register once to unlock beta access and, later, online records.</p>
+
+    <form class="auth-form" id="registerForm" autocomplete="off">
+      <label for="displayName">Display name</label>
+      <input id="displayName" name="displayName" type="text" maxlength="24" placeholder="How others see you" required>
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" placeholder="you@example.com" required>
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" minlength="6" placeholder="At least 6 characters" required>
+
+      <div class="btn-row" style="justify-content:flex-start; margin-top:6px;">
+        <button class="btn btn-primary" type="submit" id="submitBtn">Create account</button>
+      </div>
+      <div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>
+    </form>
+
+    <p class="switch-link">Already have an account? <a href="login.html">Sign in</a></p>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script type="module">
+  import {
+    auth, createUserWithEmailAndPassword, sendEmailVerification
+  } from '../assets/firebase-init.js';
+
+  var form = document.getElementById('registerForm');
+  var btn = document.getElementById('submitBtn');
+  var status = document.getElementById('statusMsg');
+  var view = document.getElementById('view');
+
+  function setStatus(text, type) {
+    status.textContent = text;
+    status.className = 'status-msg' + (type ? ' ' + type : '');
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var displayName = document.getElementById('displayName').value.trim();
+    var email = document.getElementById('email').value.trim();
+    var password = document.getElementById('password').value;
+
+    btn.disabled = true;
+    setStatus('Creating account…', '');
+
+    var userCredential;
+    try {
+      userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      setStatus(firebaseErrorToMessage(err), 'error');
+      btn.disabled = false;
+      return;
+    }
+
+    try {
+      var idToken = await userCredential.user.getIdToken();
+      var res = await fetch('/api/create-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: idToken, displayName: displayName })
+      });
+      var data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setStatus(data.error || 'Account creation failed.', 'error');
+        btn.disabled = false;
+        return;
+      }
+
+      await sendEmailVerification(userCredential.user);
+
+      view.innerHTML =
+        '<div class="eyebrow">Almost there</div>' +
+        '<h2>Check your email.</h2>' +
+        '<p class="lead">We sent a verification link to <strong>' + email + '</strong>. ' +
+        'Confirm it, then sign in to continue.</p>' +
+        '<div class="btn-row"><a class="btn btn-primary" href="login.html">Go to sign in</a></div>';
+    } catch (err) {
+      setStatus('Account created, but something went wrong finishing setup. Try signing in.', 'error');
+      btn.disabled = false;
+    }
+  });
+
+  function firebaseErrorToMessage(err) {
+    var code = err && err.code ? err.code : '';
+    if (code === 'auth/email-already-in-use') return 'This email is already registered.';
+    if (code === 'auth/invalid-email') return 'That email address looks invalid.';
+    if (code === 'auth/weak-password') return 'Password is too weak — use at least 6 characters.';
+    return 'Something went wrong. Please try again.';
+  }
+</script>
+
+</body>
+</html>

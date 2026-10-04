@@ -21,12 +21,7 @@
     padding: 0 16px;
   }
   .code-input:focus { outline: none; border-color: var(--white); }
-  .status-msg {
-    font-size: 14px;
-    font-weight: 300;
-    min-height: 20px;
-    margin-top: 4px;
-  }
+  .status-msg { font-size: 14px; font-weight: 300; min-height: 20px; margin-top: 4px; }
   .status-msg.error { color: rgba(255,120,120,0.9); }
   .status-msg.success { color: rgba(140,255,180,0.9); }
   .btn-primary:disabled { opacity: 0.4; }
@@ -37,35 +32,13 @@
 <nav class="platform-nav">
   <a href="../index.html" class="wordmark">ORBIT</a>
   <div class="links">
-    <a href="about.html">About</a>
-    <a href="../games.html">Games</a>
+    <a href="account.html">Account</a>
   </div>
 </nav>
 
 <section class="section">
-  <div class="section-inner">
-    <div class="eyebrow">Beta access</div>
-    <h2>Enter your invite code.</h2>
-    <p class="lead">
-      ORBIT is currently invite-only. If you've received a code, enter it
-      below to unlock beta access.
-    </p>
-
-    <form class="code-form" id="betaForm" autocomplete="off">
-      <input
-        class="code-input"
-        id="codeInput"
-        name="code"
-        type="text"
-        inputmode="text"
-        maxlength="12"
-        placeholder="CODE"
-        aria-label="Invite code"
-        required
-      >
-      <button class="btn btn-primary" type="submit" id="submitBtn">Unlock</button>
-      <div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>
-    </form>
+  <div class="section-inner" id="view">
+    <div class="eyebrow">Checking your account…</div>
   </div>
 </section>
 
@@ -73,75 +46,79 @@
   ORBIT Platform · stuctech-eng
 </footer>
 
-<script>
-(function () {
-  var form = document.getElementById('betaForm');
-  var input = document.getElementById('codeInput');
-  var btn = document.getElementById('submitBtn');
-  var status = document.getElementById('statusMsg');
+<script type="module">
+  import { auth, onAuthStateChanged } from '../assets/firebase-init.js';
 
-  function setStatus(text, type) {
-    status.textContent = text;
-    status.className = 'status-msg' + (type ? ' ' + type : '');
-  }
+  var view = document.getElementById('view');
 
-  function getOrCreateClientId() {
-    var key = 'orbit_client_id';
-    var id = localStorage.getItem(key);
-    if (!id) {
-      id = 'c_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-      localStorage.setItem(key, id);
+  function renderCodeForm(user) {
+    view.innerHTML =
+      '<div class="eyebrow">Beta access</div>' +
+      '<h2>Enter your invite code.</h2>' +
+      '<p class="lead">Signed in as <strong>' + user.email + '</strong>. ' +
+      'Enter your invite code to unlock beta access.</p>' +
+      '<form class="code-form" id="betaForm" autocomplete="off">' +
+        '<input class="code-input" id="codeInput" type="text" inputmode="text" maxlength="12" placeholder="CODE" aria-label="Invite code" required>' +
+        '<button class="btn btn-primary" type="submit" id="submitBtn">Unlock</button>' +
+        '<div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>' +
+      '</form>';
+
+    var form = document.getElementById('betaForm');
+    var input = document.getElementById('codeInput');
+    var btn = document.getElementById('submitBtn');
+    var status = document.getElementById('statusMsg');
+
+    function setStatus(text, type) {
+      status.textContent = text;
+      status.className = 'status-msg' + (type ? ' ' + type : '');
     }
-    return id;
-  }
 
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    var code = input.value.trim();
-    if (!code) return;
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var code = input.value.trim();
+      if (!code) return;
 
-    btn.disabled = true;
-    setStatus('Checking…', '');
+      btn.disabled = true;
+      setStatus('Checking…', '');
 
-    try {
-      var res = await fetch('/api/check-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code, clientId: getOrCreateClientId() })
-      });
-
-      var rawText = await res.text();
-      var data;
       try {
-        data = JSON.parse(rawText);
-      } catch (parseErr) {
-        // Server did not return JSON (e.g. crashed function, HTML error page).
-        // Surface the raw response so the real cause is visible, not a generic message.
-        setStatus('Server error (HTTP ' + res.status + '): ' + rawText.slice(0, 200), 'error');
-        btn.disabled = false;
-        return;
-      }
+        var idToken = await user.getIdToken();
+        var res = await fetch('/api/redeem-beta-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: idToken, code: code })
+        });
+        var data = await res.json();
 
-      if (res.ok && data.valid) {
-        localStorage.setItem('orbit_beta_session', JSON.stringify({
-          code: code.trim().toUpperCase(),
-          games: data.games || [],
-          unlockedAt: Date.now()
-        }));
-        setStatus('Access granted. Redirecting…', 'success');
-        setTimeout(function () {
-          window.location.href = 'account.html';
-        }, 700);
-      } else {
-        setStatus(data.error || ('Invalid code (HTTP ' + res.status + ').'), 'error');
+        if (res.ok && data.success) {
+          setStatus('Access granted. Redirecting…', 'success');
+          setTimeout(function () { window.location.href = '../games.html'; }, 700);
+        } else {
+          setStatus(data.error || 'Invalid code.', 'error');
+          btn.disabled = false;
+        }
+      } catch (err) {
+        setStatus('Network error. Please try again.', 'error');
         btn.disabled = false;
       }
-    } catch (err) {
-      setStatus('Network error: ' + (err && err.message ? err.message : String(err)), 'error');
-      btn.disabled = false;
+    });
+  }
+
+  onAuthStateChanged(auth, function (user) {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
     }
+    if (!user.emailVerified) {
+      view.innerHTML =
+        '<div class="eyebrow">Almost there</div>' +
+        '<h2>Verify your email first.</h2>' +
+        '<p class="lead">Check your inbox for the verification link, then come back here.</p>' +
+        '<div class="btn-row"><a class="btn btn-primary" href="login.html">Back to sign in</a></div>';
+      return;
+    }
+    renderCodeForm(user);
   });
-})();
 </script>
 </body>
 </html>

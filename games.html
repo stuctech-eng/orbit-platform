@@ -12,7 +12,7 @@
   <a href="index.html" class="wordmark">ORBIT</a>
   <div class="links">
     <a href="pages/about.html">About</a>
-    <a href="pages/beta.html">Beta</a>
+    <a href="pages/account.html">Account</a>
   </div>
 </nav>
 
@@ -26,13 +26,12 @@
         <h3 style="font-size:20px;">ORBIT</h3>
         <p style="margin-bottom:20px;">A minimalist memory scanner. Available now.</p>
         <div class="btn-row" style="justify-content:flex-start;" id="orbitCta">
-          <!-- v2.4.1 (Stap 1, portal-flow-fix): gevuld door script hieronder.
-               Geen enkele wijziging aan beta.html/check-code.js/Firebase-
-               schema/de echte ORBIT-game — puur navigatie op deze pagina.
-               NIET beveiliging: localStorage is client-side en door de
-               gebruiker aan te passen. De echte toegangscontrole moet in
-               de game zelf komen (AccessController, apart ontwerp, nog
-               niet gebouwd — zie docs/access-controller-v1-onderzoek.md). -->
+          <!-- Fase C: gevuld door script hieronder, op basis van Firebase
+               Auth-status + Firestore entitlements/{uid}/games/orbit.
+               NIET beveiliging van de game zelf — nog altijd een kale
+               link naar de game-URL. De echte toegangscontrole in de
+               game zelf is Fase D (AccessController, nog niet gebouwd —
+               zie docs/access-controller-v1-technisch-ontwerp.md). -->
         </div>
       </div>
     </div>
@@ -45,31 +44,41 @@
   ORBIT Platform · stuctech-eng
 </footer>
 
-<script>
-(function () {
-  // v2.4.1 — centrale configuratie, één plek binnen dit bestand i.p.v.
-  // verspreid hardcoden. Als een tweede bestand deze URL ooit ook nodig
-  // heeft, hoort dit naar een gedeeld config-bestand te verhuizen — nu
-  // nog niet nodig, scope van Stap 1 is bewust beperkt tot dit bestand.
+<script type="module">
+  // Fase C — vervangt de oude localStorage.orbit_beta_session-check door
+  // een echte Firebase Auth + Firestore-entitlement-check. Nog steeds
+  // GEEN AccessController-token (dat is Fase D) — de link naar de game
+  // zelf is nog een kale URL, puur navigatie/UX op deze pagina, net als
+  // voorheen. De echte toegangscontrole in de game zelf volgt in Fase D.
+  import { auth, db, onAuthStateChanged, doc, getDoc } from 'assets/firebase-init.js';
+
   var ORBIT_GAME_URL = 'https://orbit-rho-ruby.vercel.app/';
-
   var cta = document.getElementById('orbitCta');
-  var raw = localStorage.getItem('orbit_beta_session');
-  var session = null;
-  try { session = raw ? JSON.parse(raw) : null; } catch (e) { session = null; }
 
-  // Zelfde geldigheidscheck als account.html (session.code aanwezig) —
-  // niet opnieuw verzonnen, bewust hetzelfde criterium.
-  var heeftGeldigeSessie = !!(session && session.code);
+  onAuthStateChanged(auth, async function (user) {
+    if (!user) {
+      cta.innerHTML = '<a class="btn btn-primary" href="pages/login.html">Sign in</a>' +
+        '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
+      return;
+    }
 
-  if (heeftGeldigeSessie) {
-    cta.innerHTML = '<a class="btn btn-primary" href="' + ORBIT_GAME_URL + '">Play ORBIT</a>' +
-      '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
-  } else {
-    cta.innerHTML = '<a class="btn btn-primary" href="pages/beta.html">Enter beta code</a>' +
-      '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
-  }
-})();
+    try {
+      var entitlementRef = doc(db, 'entitlements', user.uid, 'games', 'orbit');
+      var snap = await getDoc(entitlementRef);
+      var hasAccess = snap.exists() && snap.data().status === 'active';
+
+      if (hasAccess) {
+        cta.innerHTML = '<a class="btn btn-primary" href="' + ORBIT_GAME_URL + '">Play ORBIT</a>' +
+          '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
+      } else {
+        cta.innerHTML = '<a class="btn btn-primary" href="pages/beta.html">Enter beta code</a>' +
+          '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
+      }
+    } catch (err) {
+      cta.innerHTML = '<a class="btn btn-primary" href="pages/account.html">My account</a>' +
+        '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
+    }
+  });
 </script>
 
 </body>

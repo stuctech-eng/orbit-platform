@@ -1,3 +1,10 @@
+// ⚠️ VERVANGEN sinds Fase C (accountlaag) — zie api/redeem-beta-code.js.
+// Dit bestand wordt nergens meer vanuit het platform aangeroepen (de
+// oude, aparte beta.html-stap zonder account bestaat niet meer). Blijft
+// hier staan om geen bestandsverwijdering over Working Copy te vergen;
+// kan veilig verwijderd worden zodra gewenst. Geen actieve beveiligings-
+// rol meer — clientId-gebaseerde identiteit is vervangen door UID.
+
 const admin = require('firebase-admin');
 
 let initError = null;

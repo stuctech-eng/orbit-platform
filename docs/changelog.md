@@ -4,6 +4,63 @@ Bijgehouden per feature/fix, nieuwste bovenaan — staande opdracht, geen aparte
 
 ---
 
+## Fase B/C — Reconciliation, Identity/Auth-ontwerp + bouw (8 augustus 2026)
+
+**Koerswijziging ten opzichte van het eerdere Fase 3-traject.** Een
+reconciliation-audit stelde vast dat het bestaande, codegebaseerde
+AccessController-ontwerp (klaar voor GO op dat moment) binnen
+afzienbare tijd opnieuw ontworpen zou moeten worden zodra centrale
+accounts nodig zijn — precies het risico dat voorkomen moest worden.
+Besluit: dat ontwerp **niet bouwen**, eerst een centrale Identity/
+Auth/Access-laag (Firebase Auth + UID) ontwerpen en bouwen.
+
+**Fase B — architectuur vastgesteld:**
+- Identiteit = Firebase Auth UID, niet een beta-code
+- `users/{uid}` = profiel, nooit identiteit/wachtwoord
+- `beta_codes` blijft bestaan als invoermechanisme voor een
+  `entitlements/{uid}/{gameId}`-document, niet meer de entitlement zelf
+- Demo blijft altijd vrij toegankelijk; productiegame vereist account +
+  geldige entitlement (geen anonieme toegang meer); lokale gameplay na
+  validatie blijft offline werken
+- Firebase Auth is de enige bron van waarheid over identiteit;
+  `users/{uid}.accountStatus` is een platform-lifecycle-registratie,
+  geen eigen tweede autoriteit
+
+**Fase C — technisch ontwerp + bouw, uitsluitend binnen `orbit-platform`:**
+- Firebase Authentication (Email/Password), e-mailverificatie
+  **verplicht** vóór een account `active` wordt
+- `users/{uid}`, `displayNames/{naam}` (uniekheids-reservering via
+  atomaire transactie, ook bij naamswijziging)
+- Beta-code-invoer verplaatst ín de account-flow — geen losse,
+  accountloze stap meer; `entitlements/{uid}/games/{gameId}` vervangt
+  de oude, voor-altijd-geldige lokale sessie
+- `maxUses` wordt nu gehandhaafd bij het inwisselen van een code —
+  lost het gat uit de eerdere audit direct op
+- Account verwijderen: directe statuswijziging + ingetrokken
+  entitlements; Firebase Auth-user blijft 30 dagen bestaan vóór
+  definitieve opruiming (de scheduled cleanup-job zelf is nog niet
+  gebouwd — expliciet benoemd als vervolgstap)
+- Nieuwe pagina's: `pages/register.html`, `pages/login.html`; herbouwd:
+  `pages/beta.html`, `pages/account.html`; herzien: `games.html`
+  (Firebase Auth + Firestore-entitlement i.p.v. `localStorage`)
+- Nieuwe serverless functions: `api/create-profile.js`,
+  `api/confirm-verification.js`, `api/update-displayname.js`,
+  `api/redeem-beta-code.js`, `api/request-account-deletion.js` — alle
+  vijf met dezelfde Admin SDK-init-stijl als de bestaande functions
+- `api/check-code.js` vervangen door `api/redeem-beta-code.js` —
+  blijft als bestand staan (deprecation-notice), nergens meer
+  aangeroepen, geen verwijdering nodig over Working Copy
+- `firestore.rules` vastgelegd in de repo als bedoelde staat — **moet
+  nog handmatig in de Firebase Console geplakt worden**, kan niet
+  vanuit hier worden toegepast
+- **Status: gebouwd, nog niet getest in productie.** Zie README voor
+  de testinstructies (Rules plakken, registratie/verificatie/login/
+  beta-code-flow doorlopen)
+- `stuctech-eng/orbit` (de game zelf) volledig onaangeraakt — dat is
+  Fase D, nog niet gestart
+
+---
+
 ## Fase 3, Stap 1 — Master Specification + Audit + games.html-fix (8 augustus 2026)
 
 **Master Specification v1.0 vastgelegd** — `docs/orbit-platform-master-spec-v1.md`, volledige, letterlijke tekst bewaard als leidend referentiedocument. Trekt eerdere losse beslissingen recht tot één geheel (platform ≠ game, demo vrij toegankelijk, echte game beveiligd, Admin Console, Firebase achter de schermen, meerdere games, later Apple).

@@ -1,0 +1,62 @@
+// ORBIT Platform — Firestore Security Rules (Fase C)
+//
+// BELANGRIJK: dit bestand wordt NIET automatisch toegepast. Firestore
+// Rules leven in de Firebase Console (Firestore Database > Rules), niet
+// in dit repo. Dit bestand is de vastgelegde, bedoelde staat — plak de
+// inhoud hieronder (tussen de rules_version-regel en de laatste
+// accolade) handmatig in de Console en klik Publish.
+//
+// Zie docs/access-controller-v1-technisch-ontwerp.md en de Fase C
+// architectuur-addenda voor de redenering achter elke regel.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // users/{uid} — profiel. Iedereen mag displayName/accountStatus
+    // lezen (nodig voor toekomstige leaderboards — zie audit sectie I).
+    // email NOOIT publiek leesbaar. Schrijven ALLEEN server-side (Admin
+    // SDK via de API-routes) — de client schrijft hier nooit rechtstreeks
+    // in, ook niet de eigenaar zelf. Dit voorkomt dat een client zelf
+    // accountStatus of email zou kunnen aanpassen.
+    match /users/{uid} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if false; // uitsluitend via Admin SDK (API-routes)
+    }
+
+    // displayNames/{name} — uniekheids-reservering. Publiek leesbaar
+    // (nodig om vooraf te checken of een naam vrij is), nooit direct
+    // door de client schrijfbaar — alleen via de transacties in
+    // create-profile.js / update-displayname.js (Admin SDK).
+    match /displayNames/{name} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // entitlements/{uid}/games/{gameId} — alleen de eigenaar mag zijn
+    // eigen entitlements lezen (voor account.html/games.html). Nooit
+    // client-schrijfbaar — uitsluitend via redeem-beta-code.js en
+    // request-account-deletion.js (Admin SDK).
+    match /entitlements/{uid}/games/{gameId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // beta_codes/{code} — nooit client-leesbaar of -schrijfbaar. Een
+    // client mag nooit zelf kunnen zien welke codes bestaan of ze
+    // rechtstreeks aanpassen — alleen via check-code.js/redeem-beta-
+    // code.js (Admin SDK, bypassed deze Rules sowieso, maar expliciet
+    // dicht als extra laag).
+    match /beta_codes/{code} {
+      allow read, write: if false;
+    }
+
+    // feedback/{id} — platform-feedback, geen koppeling aan identiteit
+    // nodig. Blijft zoals in Fase 2: alleen server-side schrijfbaar.
+    match /feedback/{id} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
