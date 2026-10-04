@@ -53,9 +53,11 @@ Auth/Access-laag (Firebase Auth + UID) ontwerpen en bouwen.
 - `firestore.rules` vastgelegd in de repo als bedoelde staat — **moet
   nog handmatig in de Firebase Console geplakt worden**, kan niet
   vanuit hier worden toegepast
-- **Status: gebouwd, nog niet getest in productie.** Zie README voor
-  de testinstructies (Rules plakken, registratie/verificatie/login/
-  beta-code-flow doorlopen)
+- **Status: live en end-to-end geverifieerd door de gebruiker.**
+  Firestore Rules toegepast in de Console, volledige flow getest:
+  registreren → e-mail verifiëren → inloggen → beta-code invoeren →
+  entitlement toegekend → "Play ORBIT" zichtbaar → profiel correct
+  in `account.html`
 - `stuctech-eng/orbit` (de game zelf) volledig onaangeraakt — dat is
   Fase D, nog niet gestart
 

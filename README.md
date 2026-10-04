@@ -107,22 +107,20 @@ onaangeraakt.
 - Firebase-project: `orbit-platform-3ec4a`, service account gekoppeld via Vercel Environment Variables
 - Eén Vercel-project actief: `orbit-platform` (`orbit-platform-nine.vercel.app`)
 
-**Fase C — Centrale accountlaag (gebouwd, 8 augustus 2026) — zie roadmap-sectie bovenaan voor details**
+**Fase C — Centrale accountlaag — Live en geverifieerd** (8 augustus 2026)
 
-- Firebase Authentication, `users/{uid}`, `displayNames/{naam}`, `entitlements/{uid}/games/{gameId}`
-- `pages/register.html`, `pages/login.html` — nieuw
-- `pages/beta.html`, `pages/account.html` — herbouwd
-- `games.html` — herzien naar Firebase Auth-gebaseerde check
-- `firestore.rules` — vastgelegd in repo, **moet nog handmatig in de Firebase Console geplakt worden**
-- **Nog niet getest in productie** — zie "Volgende stap ná deze push" hieronder
+- Firebase Authentication, `users/{uid}`, `displayNames/{naam}`, `entitlements/{uid}/games/{gameId}` ✅ live
+- `pages/register.html`, `pages/login.html` — nieuw ✅ getest, werkt
+- `pages/beta.html`, `pages/account.html` — herbouwd ✅ getest, werkt
+- `games.html` — Firebase Auth-gebaseerde check ✅ getest, toont correct "Play ORBIT" na geldige entitlement
+- `firestore.rules` — toegepast in de Firebase Console ✅ bevestigd werkend (reads/writes slagen)
+- **End-to-end geverifieerd door de gebruiker:** registreren → e-mail verifiëren → inloggen → beta-code `TEST2026` invoeren → entitlement toegekend → "Play ORBIT" zichtbaar → profiel correct in `account.html`
 
----
+**Let op `TEST2026`:** dit testdocument heeft geen `maxUses`-veld — wordt door `redeem-beta-code.js` behandeld als onbeperkt bruikbaar (bewust backward-compatible gedrag). Voor een echte `maxUses`-test: een nieuw testdocument aanmaken met een `maxUses`-veld (number).
 
-## Volgende stap ná deze push (testinstructies)
-
-1. **Firestore Rules handmatig toepassen:** Firebase Console → Firestore Database → Rules → inhoud van `firestore.rules` plakken → Publish
-2. Testen: nieuw account aanmaken via `pages/register.html` → e-mail verifiëren → inloggen → beta-code invoeren (bestaande code `TEST2026` werkt, heeft geen `maxUses`-veld dus onbeperkt bruikbaar — zie hieronder) → controleren dat `games.html` "Play ORBIT" toont
-3. **Let op `TEST2026`:** dit testdocument heeft geen `maxUses`-veld — wordt door `redeem-beta-code.js` behandeld als onbeperkt bruikbaar (bewust backward-compatible gedrag). Voor een echte `maxUses`-test: een nieuw testdocument aanmaken met een `maxUses`-veld (number)
+**Nog open, buiten scope van Fase C (zie roadmap-sectie bovenaan):**
+- De 30-dagen-opruiming na accountverwijdering is nog geen gebouwde job
+- Fase D — AccessController (UID-gebaseerd) voor de `orbit`-game-repo zelf, nog niet gestart
 
 ---
 
