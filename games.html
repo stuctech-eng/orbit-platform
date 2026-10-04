@@ -55,7 +55,7 @@
   // antwoord wordt er doorgestuurd naar de game, met het token als
   // querystring. De game zelf controleert alleen het token (zie
   // stuctech-eng/orbit, #accessGate) — nooit Firestore rechtstreeks.
-  import { auth, db, onAuthStateChanged, doc, getDoc } from 'assets/firebase-init.js';
+  import { auth, db, onAuthStateChanged, doc, getDoc } from './assets/firebase-init.js';
 
   var ORBIT_GAME_URL = 'https://orbit-rho-ruby.vercel.app/';
   var cta = document.getElementById('orbitCta');
