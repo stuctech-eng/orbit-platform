@@ -4,6 +4,55 @@ Bijgehouden per feature/fix, nieuwste bovenaan — staande opdracht, geen aparte
 
 ---
 
+## Fase D — UID-gebaseerde AccessController, eerste wijziging aan `stuctech-eng/orbit` (8 augustus 2026)
+
+**Ontwerp vastgesteld na één correctieronde:** de entitlement-check
+gebeurt uitsluitend op het platform (`issue-access-token.js`), nooit
+in de game — de game vertrouwt alleen op het ondertekende token. Het
+risico van één gedeeld symmetrisch secret is expliciet vastgelegd,
+met asymmetrische signing (RS256) als gedocumenteerd, niet-gebouwd
+toekomstig verbeterpunt.
+
+**Gebouwd, beide repo's, uitsluitend deze scope — geen scores, geen
+leaderboards, geen Fase E/F:**
+
+- `orbit-platform/api/issue-access-token.js` — verifieert idToken,
+  checkt `users/{uid}.accountStatus` + `entitlements/{uid}/games/{gameId}`
+  tegen Firestore (de enige plek waar dat gebeurt), geeft bij succes
+  een JWT terug (`{uid, gameId}`, 120s geldig, HS256 met
+  `ACCESS_TOKEN_SECRET`)
+- `orbit-platform/games.html` — "Play ORBIT" vraagt nu bij elke klik
+  een vers token aan i.p.v. een kale link te zijn
+- `orbit/api/verify-handoff-token.js` — **eerste serverless function
+  ooit in deze repo**, stateless, geen Firestore/Admin SDK, controleert
+  alleen handtekening + `exp` + `gameId === 'orbit'`
+- `orbit/index.html` — nieuwe `#accessGate`-overlay (hoogste z-index,
+  standaard zichtbaar via pure CSS, `touch-action: none`) + klein
+  verificatie-script, **vóór** de bestaande game-engine ingevoegd.
+  **Geverifieerd met een byte-voor-byte diff: de bestaande 2085-regel
+  IIFE is nul bytes gewijzigd.**
+- `orbit/package.json` — nieuw bestand (bestond nog niet), alleen
+  `jsonwebtoken` als dependency
+- Nieuw secret `ACCESS_TOKEN_SECRET`, bedoeld voor beide
+  Vercel-projecten (nog handmatig in te stellen, zie README)
+
+**Bewust benoemde beperkingen, niet opgelost in dit ontwerp:**
+- Een reeds uitgegeven token blijft tot 120s geldig, ook ná een
+  tussentijds ingetrokken entitlement — alleen de eerstvolgende nieuwe
+  token-aanvraag ondervindt het gevolg daarvan
+- Geen single-use-afdwinging — hetzelfde token kan in theorie twee
+  keer binnen het venster gebruikt worden (twee tabbladen) — vergt
+  server-side `jti`-tracking, bewust buiten scope
+- Directe toegang tot de game-URL zonder token: geen code-invoerscherm
+  meer als fallback (verviel bewust, conform Fase B — geen anonieme
+  productie-toegang meer), alleen een verwijzing terug naar het platform
+
+**Status: gebouwd, nog niet getest in productie** — wacht op het
+instellen van `ACCESS_TOKEN_SECRET` in beide Vercel-projecten, zie
+README voor de testinstructies (inclusief twee expliciete faaltests).
+
+---
+
 ## Fase B/C — Reconciliation, Identity/Auth-ontwerp + bouw (8 augustus 2026)
 
 **Koerswijziging ten opzichte van het eerdere Fase 3-traject.** Een

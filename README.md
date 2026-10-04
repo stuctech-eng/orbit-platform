@@ -79,13 +79,44 @@ aangeroepen.
 - [ ] Stap 9 (origineel) — vervangen door Fase D (nieuw ontwerp nodig)
 - [ ] Stap 10 — Admin Console — Fase 4, nog niet gestart
 
+### Fase D — UID-gebaseerde AccessController (gebouwd, 8 augustus 2026)
+
+**Eerste wijziging ooit aan `stuctech-eng/orbit`.** De bestaande
+2085-regel game-engine is byte-voor-byte ongewijzigd gebleven
+(geverifieerd via diff) — alleen een nieuwe `#accessGate`-overlay +
+klein verificatie-script ervóór, en een nieuwe, stateless
+`api/verify-handoff-token.js` (geen Firestore-toegang in de game-repo).
+
+Gebouwd, beide repo's:
+- `orbit-platform`: `api/issue-access-token.js` — enige plek waar de
+  entitlement daadwerkelijk tegen Firestore wordt gecontroleerd, geeft
+  bij succes een kortlevend (120s) JWT terug (`{uid, gameId}`,
+  symmetrisch ondertekend met `ACCESS_TOKEN_SECRET`)
+- `orbit-platform`: `games.html` — "Play ORBIT" is geen kale link meer,
+  vraagt bij elke klik een vers token aan
+- `orbit`: `#accessGate`-overlay + `api/verify-handoff-token.js` —
+  stateless, controleert alleen handtekening/`exp`/`gameId`, nooit
+  Firestore. Game vertrouwt het platform als poortwachter
+- Nieuw secret `ACCESS_TOKEN_SECRET`, zelfde waarde in beide
+  Vercel-projecten
+- Bewust vastgelegd residuaal risico (Fase D-addendum): een reeds
+  uitgegeven token blijft tot 120s geldig ook ná een ingetrokken
+  entitlement; symmetrisch secret is een bewuste tussenstap,
+  asymmetrische signing (RS256) is gedocumenteerd als toekomstig
+  verbeterpunt, niet nu gebouwd
+
+**Scope, zoals afgesproken:** geen scores, geen leaderboards, geen
+Fase E/F in deze stap.
+
+**Nog te doen:**
+- `ACCESS_TOKEN_SECRET` moet nog handmatig in **beide** Vercel-
+  projecten als environment variable gezet worden (zie hieronder)
+- Testen/audit van de volledige handoff-flow
+
 ### Volgende stap
 
-Fase D: UID-gebaseerd AccessController-ontwerp voor de `orbit`-game-
-repo (vervangt het oude codegebaseerde ontwerp). Nog niet gestart.
-**Pas na expliciet akkoord op dát ontwerp mag er code in de
-`orbit`-game-repo veranderen** — dat repo blijft tot dan toe volledig
-onaangeraakt.
+Fase D is gebouwd, wacht op test/audit (zie "Volgende stap ná deze
+push" hieronder) vóórdat Fase E/F (scores, leaderboards) begint.
 
 ---
 
@@ -120,7 +151,32 @@ onaangeraakt.
 
 **Nog open, buiten scope van Fase C (zie roadmap-sectie bovenaan):**
 - De 30-dagen-opruiming na accountverwijdering is nog geen gebouwde job
-- Fase D — AccessController (UID-gebaseerd) voor de `orbit`-game-repo zelf, nog niet gestart
+
+**Fase D — UID-gebaseerde AccessController (gebouwd, 8 augustus 2026) — zie roadmap-sectie bovenaan voor details**
+
+- `api/issue-access-token.js` (platform), `api/verify-handoff-token.js` + `#accessGate` (game) — gebouwd
+- Bestaande game-engine (`stuctech-eng/orbit`) geverifieerd byte-identiek, geen regel gewijzigd
+- **Nog niet getest in productie** — `ACCESS_TOKEN_SECRET` moet eerst in beide Vercel-projecten gezet worden, zie testinstructies hieronder
+
+---
+
+## Volgende stap ná deze push (Fase D-testinstructies)
+
+1. **`ACCESS_TOKEN_SECRET` instellen in BEIDE Vercel-projecten** —
+   `orbit-platform` én `orbit` (de game). Zelfde waarde in beide,
+   anders slaagt de verificatie nooit. Vercel → project → Settings →
+   Environment Variables → naam `ACCESS_TOKEN_SECRET`, waarde: zie
+   losse chat-aanlevering (geheim, staat niet in dit bestand). Daarna
+   **Redeploy** op beide projecten.
+2. Testen: inloggen (bestaand account van Fase C-test) → `games.html`
+   → "Play ORBIT" klikken → moet doorsturen naar de game-URL met
+   `?token=...` → de game zou de `#accessGate`-overlay heel kort
+   moeten tonen en dan vrijgeven
+3. **Faaltest:** open de game-URL rechtstreeks, zonder `?token=` —
+   moet "Sign in required" tonen, niet de game zelf
+4. **Faaltest:** wacht >120 seconden na het klikken op "Play ORBIT"
+   voordat je de link opent (bijv. kopieer de URL, wacht, plak in een
+   nieuw tabblad) — moet "Access expired" tonen
 
 ---
 
@@ -155,6 +211,7 @@ api/
   update-displayname.js      ← nieuw, Fase C
   redeem-beta-code.js         ← nieuw, Fase C
   request-account-deletion.js  ← nieuw, Fase C
+  issue-access-token.js         ← nieuw, Fase D
 docs/
   orbit-platform-master-spec-v1.md
   audit-2026-08-08.md

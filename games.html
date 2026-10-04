@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Games — ORBIT Platform</title>
 <link rel="stylesheet" href="assets/styles.css">
+<style>
+  .status-msg { font-size: 13px; font-weight: 300; color: var(--dim-40); min-height: 18px; }
+</style>
 </head>
 <body>
 
@@ -45,15 +48,51 @@
 </footer>
 
 <script type="module">
-  // Fase C — vervangt de oude localStorage.orbit_beta_session-check door
-  // een echte Firebase Auth + Firestore-entitlement-check. Nog steeds
-  // GEEN AccessController-token (dat is Fase D) — de link naar de game
-  // zelf is nog een kale URL, puur navigatie/UX op deze pagina, net als
-  // voorheen. De echte toegangscontrole in de game zelf volgt in Fase D.
+  // Fase D — "Play ORBIT" is nu geen kale link meer. Elke klik vraagt
+  // een vers, kortlevend handoff-token aan bij /api/issue-access-token,
+  // dat daar de entitlement ECHT herverifieert tegen Firestore (nooit
+  // vertrouwend op de staat van deze pagina). Pas na een geldig
+  // antwoord wordt er doorgestuurd naar de game, met het token als
+  // querystring. De game zelf controleert alleen het token (zie
+  // stuctech-eng/orbit, #accessGate) — nooit Firestore rechtstreeks.
   import { auth, db, onAuthStateChanged, doc, getDoc } from 'assets/firebase-init.js';
 
   var ORBIT_GAME_URL = 'https://orbit-rho-ruby.vercel.app/';
   var cta = document.getElementById('orbitCta');
+
+  function renderPlayButton(user) {
+    cta.innerHTML = '<button class="btn btn-primary" id="playBtn">Play ORBIT</button>' +
+      '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>' +
+      '<div class="status-msg" id="playStatus" style="width:100%; margin-top:10px;"></div>';
+
+    var playBtn = document.getElementById('playBtn');
+    var playStatus = document.getElementById('playStatus');
+
+    playBtn.addEventListener('click', async function () {
+      playBtn.disabled = true;
+      playStatus.textContent = 'Checking access…';
+
+      try {
+        var idToken = await user.getIdToken();
+        var res = await fetch('/api/issue-access-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: idToken, gameId: 'orbit' })
+        });
+        var data = await res.json();
+
+        if (res.ok && data.success && data.token) {
+          window.location.href = ORBIT_GAME_URL + '?token=' + encodeURIComponent(data.token);
+        } else {
+          playStatus.textContent = data.error || 'Could not start ORBIT — try again.';
+          playBtn.disabled = false;
+        }
+      } catch (err) {
+        playStatus.textContent = 'Network error — try again.';
+        playBtn.disabled = false;
+      }
+    });
+  }
 
   onAuthStateChanged(auth, async function (user) {
     if (!user) {
@@ -68,8 +107,7 @@
       var hasAccess = snap.exists() && snap.data().status === 'active';
 
       if (hasAccess) {
-        cta.innerHTML = '<a class="btn btn-primary" href="' + ORBIT_GAME_URL + '">Play ORBIT</a>' +
-          '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
+        renderPlayButton(user);
       } else {
         cta.innerHTML = '<a class="btn btn-primary" href="pages/beta.html">Enter beta code</a>' +
           '<a class="btn btn-secondary" href="pages/demo.html">Try the demo</a>';
