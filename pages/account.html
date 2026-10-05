@@ -48,6 +48,7 @@
     <a href="../games.html">Games</a>
     <a href="scores.html">My scores</a>
     <a href="feedback.html">Feedback</a>
+    <a href="admin-codes.html" id="adminLink" style="display:none;">Admin</a>
   </div>
 </nav>
 
@@ -69,8 +70,29 @@
 
   var view = document.getElementById('view');
 
+  async function checkAdmin(user) {
+    // Puur UX — bepaalt alleen of de link verschijnt. Faalt dit
+    // (netwerk, uitgeschakeld, etc.), dan blijft de link simpelweg
+    // verborgen; de echte beveiliging in admin-create-code.js is
+    // hier op geen enkele manier van afhankelijk.
+    try {
+      var idToken = await user.getIdToken();
+      var res = await fetch('/api/is-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: idToken })
+      });
+      var data = await res.json();
+      if (data.isAdmin) {
+        var link = document.getElementById('adminLink');
+        if (link) link.style.display = '';
+      }
+    } catch (err) {}
+  }
+
   async function render(user) {
     await reload(user);
+    checkAdmin(user);
 
     var userRef = doc(db, 'users', user.uid);
     var userSnap = await getDoc(userRef);
