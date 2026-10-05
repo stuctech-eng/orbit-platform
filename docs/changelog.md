@@ -4,6 +4,65 @@ Bijgehouden per feature/fix, nieuwste bovenaan — staande opdracht, geen aparte
 
 ---
 
+## Fase F + G — Eén geïnstalleerde ORBIT-app, volledig automatisch (5 oktober 2026)
+
+**Fase F — same-origin PWA-scope.** Voorafgegaan door een audit die
+een kritieke iOS-bevinding opleverde: elk geïnstalleerd beginscherm-
+icoon krijgt zijn eigen, geïsoleerde opslag, ook bij hetzelfde origin
+— twee losse PWA's (game + platform) zouden dus **niet** dezelfde
+Firebase Auth-sessie delen. Besluit: één icoon, breed-scope-manifest,
+`start_url` direct naar de game.
+
+Geïmplementeerd:
+- `orbit-platform/manifest.json` (nieuw) — `scope: "/"`,
+  `id: "/orbit"` expliciet gepind
+- `stuctech-eng/orbit/index.html` — één regel (manifest-`<link>` naar
+  het platform-manifest)
+
+**Afwijking van het oorspronkelijke plan:** iconen zouden gekopieerd
+worden naar `orbit-platform/icons/`, maar PNG's bleken te corrumperen
+bij elke download/kopieerpoging via de beschikbare tools (bevestigd
+met rauwe byte-inspectie — een omgevingsbeperking). Opgelost door het
+manifest naar `/orbit/icons/icon-*.png` te laten verwijzen — bestaande
+Fase E-rewrite handelt dit al automatisch af, geen duplicatie nodig.
+
+**Getest op een echt iPhone-toestel:** icoon opent direct standalone
+in de game, geen adresbalk. **Maar:** elke keer "Sign in required"
+getoond, ook bij een al-ingelogde, al-gerechtigde gebruiker — want
+een statisch manifest kan geen kortlevend token bevatten, en de game
+kent bewust geen Firebase Auth. Geleid tot Fase G.
+
+**Fase G — automatische sessie-/token-check.** `start_url` wijst niet
+meer direct naar `/orbit`, maar naar een nieuwe tussenpagina die bij
+het openen van het icoon automatisch (zonder tik) de bestaande
+Firebase-sessie + entitlement checkt en zelf een token ophaalt.
+
+Geïmplementeerd:
+- `orbit-platform/pages/launch.html` (nieuw) — hergebruikt exact
+  dezelfde `onAuthStateChanged`/Firestore-read/`issue-access-token`-
+  aanroep die `games.html`'s "Play ORBIT"-knop al had, nu automatisch
+  i.p.v. na een klik. "Even controleren…"-melding tijdens de check,
+  expliciete "Opnieuw proberen"-knop bij een fout — nooit een leeg of
+  stil hangend scherm
+- `manifest.json` — alleen `start_url` aangepast
+
+**Bewust niet meegenomen:** de eerste-keer-inlog-flow (via
+`games.html`/`beta.html`) blijft ongewijzigd — een aparte UX-vraag,
+losgehouden van deze reparatie.
+
+**Game-repo (`stuctech-eng/orbit`): in Fase G geen enkele wijziging.**
+Service worker in Fase F bevestigd onaangeraakt en functioneel intact
+— manifest-scope en service-worker-scope zijn onafhankelijke
+mechanismen.
+
+**Status: beide fases volledig getest en bevestigd op een echt
+iPhone-toestel.** Icoon tikken → automatische check → direct spelen,
+geen extra tik, zolang sessie geldig en entitlement actief is. Geen
+open ontwerpvraagstukken meer uit het hele PWA/toegangstraject
+(Fase A t/m G).
+
+---
+
 ## Fase E — Same-Origin ORBIT PWA, geïmplementeerd + volledig getest (5 oktober 2026)
 
 **Geïmplementeerd, uitsluitend in `orbit-platform`:**

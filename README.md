@@ -165,16 +165,81 @@ bevestigd:**
 - "Play ORBIT" vanuit `games.html` → `#accessGate`-flits → **game
   start daadwerkelijk**, adresbalk blijft op het platform-origin
 
-**Resterend ontwerpvraagstuk, bewust niet opgelost:** de twee-apps/
-PWA-scope-vraag (zie Fase D hierboven) — of, en hoe, `orbit-platform`
-zelf ooit een eigen `manifest.json` krijgt, en of de game's
-`manifest.json`-scope ooit verbreed wordt. Apart te beslissen.
+**Twee-apps/PWA-scope-vraag: opgelost in Fase F.** Zie hieronder.
+
+### Fase F — Eén geïnstalleerde ORBIT-app (geïmplementeerd + getest, 5 oktober 2026)
+
+**Besluit, na een audit die eerder een kritieke iOS-bevinding
+opleverde:** iOS geeft elk afzonderlijk geïnstalleerd beginscherm-
+icoon zijn eigen, volledig geïsoleerde opslag — ook bij hetzelfde
+origin. Twee losse PWA's (game + platform) zouden dus **niet**
+dezelfde Firebase Auth-sessie delen. Daarom: **één** geïnstalleerd
+icoon, met een manifest dat het hele platform-origin als scope heeft
+maar direct in de game start.
+
+**Geïmplementeerd, uitsluitend in `orbit-platform`:**
+- `manifest.json` (nieuw) — `scope: "/"`, `start_url` wijst naar de
+  game, `id: "/orbit"` expliciet gepind, iconen hergebruiken de
+  bestaande game-iconen via `/orbit/icons/...` (zie afwijking
+  hieronder — geen duplicatie van binaire bestanden)
+- `stuctech-eng/orbit/index.html` — **één regel gewijzigd**: de
+  manifest-`<link>` wijst nu naar het platform-manifest i.p.v. zijn
+  eigen, nog steeds bestaande maar ongebruikte `manifest.json`
+
+**Afwijking van het oorspronkelijke plan, met reden:** de iconen
+zouden gekopieerd worden naar `orbit-platform/icons/`, maar binaire
+bestanden (PNG's) bleken te corrumperen bij elke poging om ze via de
+beschikbare tools te downloaden/kopiëren (geverifieerd met rauwe
+byte-inspectie — een omgevingsbeperking, geen GitHub- of Vercel-
+probleem). Opgelost door het platform-manifest te laten verwijzen
+naar `/orbit/icons/icon-*.png` — paden die via de al bestaande
+Fase E-rewrite automatisch naar de game's eigen, ongewijzigde iconen
+wijzen. Geen duplicatie, minder onderhoud dan het oorspronkelijke
+plan.
+
+**Service worker: bevestigd onaangeraakt**, zoals ontworpen — manifest-
+scope en service-worker-scope zijn onafhankelijke mechanismen.
+
+**Belangrijke les uit het testen, die tot Fase G leidde:** een vers
+geïnstalleerd icoon opende wél direct standalone (geen adresbalk) in
+de game — maar toonde **elke keer** "Sign in required", ook als de
+gebruiker al was ingelogd en toegang had. Oorzaak: een statisch
+manifest kan geen kortlevend (120s) token bevatten, en de game kent
+geen Firebase Auth om zelf te checken. Zie Fase G.
+
+### Fase G — Automatische sessie-/token-check bij het icoon (geïmplementeerd + getest, 5 oktober 2026)
+
+**Oplossing:** `start_url` wijst niet langer direct naar `/orbit`,
+maar naar een nieuwe, kleine tussenpagina die bij het openen van het
+icoon automatisch (zonder tik) de bestaande Firebase Auth-sessie en
+entitlement checkt, en bij succes zelf een vers token ophaalt.
+
+**Geïmplementeerd, uitsluitend in `orbit-platform`:**
+- `pages/launch.html` (nieuw) — hergebruikt exact dezelfde
+  `onAuthStateChanged`/Firestore-reads/`api/issue-access-token`-aanroep
+  die `games.html`'s "Play ORBIT"-knop al had, nu automatisch bij het
+  laden i.p.v. na een klik. Toont "Even controleren…" tijdens de
+  check (nooit een leeg scherm), en bij een fout een expliciete
+  "Opnieuw proberen"-knop (nooit stil blijven hangen)
+- `manifest.json` — **alleen** `start_url` aangepast naar
+  `/pages/launch.html`
+
+**Bewust niet meegenomen, eigen afweging:** de eerste-keer-inlog-flow
+(registreren/inloggen via het platform) is ongewijzigd — gaat nog
+steeds naar `games.html`/`beta.html`, niet automatisch door naar de
+game. Dat is een aparte UX-vraag, losgehouden van deze reparatie.
+
+**Status: beide fases volledig getest en bevestigd door de gebruiker**
+op een echt iPhone-toestel — icoon tikken → automatische check →
+direct spelen, zonder enige extra tik, zolang de sessie geldig is en
+entitlement actief is.
 
 ### Volgende stap
 
-Fase D en Fase E zijn beide gebouwd én getest. Volgende mogelijke
-stappen: het twee-apps/PWA-scope-ontwerpvraagstuk oplossen, of
-beginnen aan een nog niet genummerde score/leaderboard-fase.
+Fase F en G zijn beide gebouwd én getest. Geen open ontwerpvraagstukken
+meer uit het hele PWA/toegangstraject (Fase A t/m G). Mogelijke
+volgende stap: een nog niet genummerde score/leaderboard-fase, of de
+bewust uitgestelde eerste-login-flow-verbetering uit Fase G.
 
 ---
 
@@ -225,6 +290,17 @@ beginnen aan een nog niet genummerde score/leaderboard-fase.
 - **Opgeloste bug tijdens testen:** query-strings (zoals het token) gaven aanvankelijk een kale Vercel 404 door Vercel's automatische trailing-slash-redirect-gedrag — zie roadmap-sectie bovenaan voor de volledige uitzoekgeschiedenis
 - Alle testscenario's bevestigd door de gebruiker: directe `/orbit?token=...`, en de volledige "Play ORBIT"-flow met game-start
 
+**Fase F — Eén geïnstalleerde ORBIT-app — Volledig getest** (5 oktober 2026)
+
+- `manifest.json` (nieuw) — `scope: "/"`, iconen via `/orbit/icons/...` (geen duplicatie, zie roadmap-sectie) ✅ getest
+- `stuctech-eng/orbit/index.html` — één regel (manifest-link) ✅ getest
+- Bevestigd: icoon opent standalone, geen adresbalk
+
+**Fase G — Automatische sessie-/token-check — Volledig getest** (5 oktober 2026)
+
+- `pages/launch.html` (nieuw), `manifest.json` (`start_url` aangepast) ✅ getest op echt iPhone-toestel
+- Bevestigd: icoon tikken → automatisch direct spelen, geen extra tik nodig
+
 ---
 
 ## Volgende stap ná deze push (Fase D-testinstructies)
@@ -259,6 +335,7 @@ package.json
 .env.example
 firestore.rules          ← nieuw, Fase C — handmatig toepassen in Console
 vercel.json               ← nieuw, Fase E — same-origin rewrite naar de game (trailingSlash: false)
+manifest.json              ← nieuw, Fase F — scope "/", iconen via /orbit/icons/... (start_url bijgewerkt in Fase G)
 pages/
   about.html
   demo.html
@@ -267,6 +344,7 @@ pages/
   beta.html                ← herbouwd, Fase C
   account.html              ← herbouwd, Fase C
   feedback.html
+  launch.html                ← nieuw, Fase G — automatische sessie-/token-check bij app-start
 assets/
   styles.css
   ambient-cells.js
