@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT — Admin: invite codes</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .admin-form { margin-top: 32px; display: flex; flex-direction: column; gap: 14px; text-align: left; max-width: 400px; }
+  .admin-form label { font-size: 13px; color: var(--dim-40); margin-bottom: -6px; }
+  .admin-form input {
+    width: 100%;
+    min-height: 48px;
+    background: var(--dim-06);
+    border: 1px solid var(--dim-25);
+    border-radius: 12px;
+    color: var(--white);
+    padding: 0 14px;
+    font-size: 15px;
+  }
+  .admin-form input:focus { outline: none; border-color: var(--white); }
+  .status-msg { font-size: 14px; font-weight: 300; min-height: 20px; margin-top: 4px; }
+  .status-msg.error { color: rgba(255,120,120,0.9); }
+  .result-box {
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--dim-06);
+    border: 1px solid var(--dim-12);
+    border-radius: 14px;
+    display: none;
+  }
+  .result-box.visible { display: block; }
+  .result-code { font-size: 22px; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .copy-btn { font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="../games.html">Games</a>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="section-inner" id="view">
+    <div class="eyebrow">Admin</div>
+    <h2>Loading…</h2>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script type="module">
+  // Beveiliging zit uitsluitend server-side (api/admin-create-code.js,
+  // ORBIT_ADMIN_UIDS-allowlist). Deze pagina zelf vertrouwt niets —
+  // toont alleen een nette melding als de API 403 teruggeeft.
+  import { auth, onAuthStateChanged } from '../assets/firebase-init.js';
+
+  var view = document.getElementById('view');
+
+  function renderForm(user) {
+    view.innerHTML =
+      '<div class="eyebrow">Admin</div>' +
+      '<h2>Create invite code.</h2>' +
+      '<form class="admin-form" id="codeForm" autocomplete="off">' +
+        '<label for="code">Code (optional — leave empty to auto-generate)</label>' +
+        '<input id="code" type="text" maxlength="30" placeholder="e.g. FRIEND2026">' +
+        '<label for="maxUses">Max uses (optional)</label>' +
+        '<input id="maxUses" type="number" min="1" placeholder="Unlimited if empty">' +
+        '<label for="expires">Expires (optional)</label>' +
+        '<input id="expires" type="date">' +
+        '<div class="btn-row" style="justify-content:flex-start; margin-top:6px;">' +
+          '<button class="btn btn-primary" type="submit" id="submitBtn">Create code</button>' +
+        '</div>' +
+        '<div class="status-msg" id="statusMsg"></div>' +
+      '</form>' +
+      '<div class="result-box" id="resultBox">' +
+        '<div class="result-code" id="resultCode"></div>' +
+        '<button class="btn btn-secondary copy-btn" id="copyBtn">Copy code</button>' +
+      '</div>';
+
+    var form = document.getElementById('codeForm');
+    var statusMsg = document.getElementById('statusMsg');
+    var submitBtn = document.getElementById('submitBtn');
+    var resultBox = document.getElementById('resultBox');
+    var resultCode = document.getElementById('resultCode');
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      statusMsg.textContent = 'Creating…';
+      statusMsg.className = 'status-msg';
+      resultBox.classList.remove('visible');
+
+      var codeVal = document.getElementById('code').value.trim();
+      var maxUsesVal = document.getElementById('maxUses').value;
+      var expiresVal = document.getElementById('expires').value;
+
+      try {
+        var idToken = await user.getIdToken();
+        var res = await fetch('/api/admin-create-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idToken: idToken,
+            code: codeVal || undefined,
+            maxUses: maxUsesVal ? parseInt(maxUsesVal, 10) : undefined,
+            expires: expiresVal || undefined
+          })
+        });
+        var data = await res.json();
+
+        if (res.ok && data.success) {
+          statusMsg.textContent = '';
+          resultCode.textContent = data.code;
+          resultBox.classList.add('visible');
+          form.reset();
+        } else {
+          statusMsg.textContent = data.error || 'Could not create code.';
+          statusMsg.className = 'status-msg error';
+        }
+      } catch (err) {
+        statusMsg.textContent = 'Network error — try again.';
+        statusMsg.className = 'status-msg error';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', function () {
+      navigator.clipboard.writeText(resultCode.textContent).then(function () {
+        var btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = 'Copy code'; }, 1500);
+      });
+    });
+  }
+
+  onAuthStateChanged(auth, function (user) {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
+    }
+    renderForm(user);
+  });
+</script>
+</body>
+</html>
