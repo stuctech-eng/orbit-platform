@@ -108,6 +108,34 @@ Gebouwd, beide repo's:
 **Scope, zoals afgesproken:** geen scores, geen leaderboards, geen
 Fase E/F in deze stap.
 
+**Status: functioneel geslaagd, getest door de gebruiker.** Alle drie
+testscenario's bevestigd: normale flow (Play ORBIT → korte
+`#accessGate`-flits → game start), directe game-URL zonder token
+("Sign in required"-overlay, game niet speelbaar), hotfix op een
+ontbrekend relatief importpad in `games.html` (`assets/firebase-init.js`
+→ `./assets/firebase-init.js`, anders crasht de hele module stil —
+geen enkele knop werd getekend).
+
+**Vastgesteld UX-aandachtspunt, geen beveiligingsprobleem:**
+Centrale platform-authenticatie werkt correct. Directe toegang tot de
+game-URL wordt terecht geblokkeerd. Door de huidige scheiding tussen
+platform- en gamedomein gaat de iOS standalone/PWA-ervaring tijdens
+de overgang naar de game verloren (Safari-adresbalk zichtbaar bij het
+domeinwisseling-moment, onvermijdelijk op iOS zolang platform en game
+op aparte origins staan). Besluit: `orbit-platform` wordt het
+officiële startpunt (beginscherm-snelkoppeling → platform → Play
+ORBIT → game), de adresbalk tijdens de overstap wordt voorlopig
+geaccepteerd. **Bijkomende bevinding:** `orbit-platform` heeft zelf
+nog geen `manifest.json`/`apple-touch-icon` — een snelkoppeling
+ernaartoe is nu een kale bookmark, geen app-icoon. Relevant voor de
+onderzoeksfase hieronder, niet nu gebouwd.
+
+**Onderzoek naar same-origin/platformering wordt uitgesteld tot een
+aparte architectuurfase** (bijv. platform + game onder één domein,
+`orbit.example.com/games/orbit`) — raakt routing, Vercel, PWA-
+installatie, token-overdracht en mogelijk de huidige repo-architectuur.
+Niet nu aangepakt; eerst deze Fase D-versie laten staan zoals gebouwd.
+
 **Nog te doen:**
 - `ACCESS_TOKEN_SECRET` moet nog handmatig in **beide** Vercel-
   projecten als environment variable gezet worden (zie hieronder)
@@ -152,11 +180,12 @@ push" hieronder) vóórdat Fase E/F (scores, leaderboards) begint.
 **Nog open, buiten scope van Fase C (zie roadmap-sectie bovenaan):**
 - De 30-dagen-opruiming na accountverwijdering is nog geen gebouwde job
 
-**Fase D — UID-gebaseerde AccessController (gebouwd, 8 augustus 2026) — zie roadmap-sectie bovenaan voor details**
+**Fase D — UID-gebaseerde AccessController — Functioneel getest** (8 augustus 2026)
 
-- `api/issue-access-token.js` (platform), `api/verify-handoff-token.js` + `#accessGate` (game) — gebouwd
+- `api/issue-access-token.js` (platform), `api/verify-handoff-token.js` + `#accessGate` (game) ✅ live, getest
 - Bestaande game-engine (`stuctech-eng/orbit`) geverifieerd byte-identiek, geen regel gewijzigd
-- **Nog niet getest in productie** — `ACCESS_TOKEN_SECRET` moet eerst in beide Vercel-projecten gezet worden, zie testinstructies hieronder
+- Hotfix: ontbrekend relatief importpad in `games.html` gecorrigeerd (`./assets/firebase-init.js`)
+- **UX-aandachtspunt vastgesteld, geen beveiligingsprobleem:** zie roadmap-sectie bovenaan — iOS standalone-ervaring gaat verloren bij de domeinoverstap platform→game; `orbit-platform` wordt het officiële startpunt; same-origin-onderzoek uitgesteld tot aparte fase
 
 ---
 

@@ -4,6 +4,46 @@ Bijgehouden per feature/fix, nieuwste bovenaan — staande opdracht, geen aparte
 
 ---
 
+## Fase D — Getest + UX-bevinding vastgelegd (8 augustus 2026)
+
+**Hotfix:** `games.html` had een ongeldig relatief import-pad
+(`assets/firebase-init.js` i.p.v. `./assets/firebase-init.js`) —
+browsers staan "kale" module-specifiers niet toe zonder import map,
+waardoor de hele module stil crashte en géén knop (ook niet de
+fallback) getekend werd. Gecorrigeerd, enige wijziging in deze fix.
+
+**Testresultaten, door de gebruiker bevestigd:**
+- Normale flow (ingelogd, geldige entitlement) → "Play ORBIT" →
+  `#accessGate`-flits → game start: **werkt**
+- Directe game-URL zonder token (bestaande beginscherm-snelkoppeling
+  van vóór Fase D) → "Sign in required"-overlay, game niet
+  speelbaar: **werkt, zoals bedoeld**
+
+**UX-bevinding, geen beveiligingsprobleem:** de oude, rechtstreekse
+beginscherm-snelkoppeling naar de kale game-URL functioneerde vóór
+Fase D als standalone/PWA-ervaring (geen adresbalk, volledig
+schermvullend). Na Fase D wordt die snelkoppeling terecht
+geblokkeerd — maar de noodzakelijke omweg via het platform
+introduceert een Safari-adresbalk tijdens de domeinoverstap
+(platform en game staan op aparte origins; iOS schakelt bij een
+cross-origin-navigatie altijd naar volledige Safari-weergave over,
+ook al is de bronpagina zelf standalone).
+
+**Besluit:** `orbit-platform` wordt het officiële startpunt
+(beginscherm-icoon → platform → Play ORBIT → game). De adresbalk
+tijdens de overstap wordt voorlopig geaccepteerd. **Bijkomend
+gevonden:** `orbit-platform` heeft zelf nog geen `manifest.json` of
+`apple-touch-icon` — dat is nodig voordat een snelkoppeling naar het
+platform er zelf app-achtig uitziet, nog niet gebouwd.
+
+**Onderzoek naar same-origin/platformering (platform + game onder
+één domein) wordt uitgesteld tot een aparte architectuurfase** — raakt
+routing, Vercel-configuratie, PWA-installatie, token-overdracht en
+mogelijk de huidige repo-architectuur (twee losse repo's/deployments).
+Expliciet niet nu aangepakt.
+
+---
+
 ## Fase D — UID-gebaseerde AccessController, eerste wijziging aan `stuctech-eng/orbit` (8 augustus 2026)
 
 **Ontwerp vastgesteld na één correctieronde:** de entitlement-check
