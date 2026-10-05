@@ -13,5 +13,19 @@
       "source": "/orbit/:path*",
       "destination": "https://orbit-rho-ruby.vercel.app/:path*"
     }
+  ],
+  "headers": [
+    {
+      "source": "/orbit/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/api/verify-handoff-token",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    }
   ]
 }
