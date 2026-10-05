@@ -105,8 +105,9 @@ Gebouwd, beide repo's:
   asymmetrische signing (RS256) is gedocumenteerd als toekomstig
   verbeterpunt, niet nu gebouwd
 
-**Scope, zoals afgesproken:** geen scores, geen leaderboards, geen
-Fase E/F in deze stap.
+**Scope, zoals afgesproken:** geen scores, geen leaderboards in deze
+stap (nog niet genummerde, latere score/leaderboard-fase — niet te
+verwarren met "Fase E" hieronder, dat is de same-origin PWA-fase).
 
 **Status: functioneel geslaagd, getest door de gebruiker.** Alle drie
 testscenario's bevestigd: normale flow (Play ORBIT → korte
@@ -116,35 +117,64 @@ ontbrekend relatief importpad in `games.html` (`assets/firebase-init.js`
 → `./assets/firebase-init.js`, anders crasht de hele module stil —
 geen enkele knop werd getekend).
 
-**Vastgesteld UX-aandachtspunt, geen beveiligingsprobleem:**
-Centrale platform-authenticatie werkt correct. Directe toegang tot de
-game-URL wordt terecht geblokkeerd. Door de huidige scheiding tussen
-platform- en gamedomein gaat de iOS standalone/PWA-ervaring tijdens
-de overgang naar de game verloren (Safari-adresbalk zichtbaar bij het
-domeinwisseling-moment, onvermijdelijk op iOS zolang platform en game
-op aparte origins staan). Besluit: `orbit-platform` wordt het
-officiële startpunt (beginscherm-snelkoppeling → platform → Play
-ORBIT → game), de adresbalk tijdens de overstap wordt voorlopig
-geaccepteerd. **Bijkomende bevinding:** `orbit-platform` heeft zelf
-nog geen `manifest.json`/`apple-touch-icon` — een snelkoppeling
-ernaartoe is nu een kale bookmark, geen app-icoon. Relevant voor de
-onderzoeksfase hieronder, niet nu gebouwd.
+**UX-aandachtspunt, opgelost in Fase E:** de iOS standalone/PWA-
+ervaring ging verloren bij de domeinoverstap platform→game. Zie Fase E
+hieronder voor de oplossing (same-origin via rewrite).
 
-**Onderzoek naar same-origin/platformering wordt uitgesteld tot een
-aparte architectuurfase** (bijv. platform + game onder één domein,
-`orbit.example.com/games/orbit`) — raakt routing, Vercel, PWA-
-installatie, token-overdracht en mogelijk de huidige repo-architectuur.
-Niet nu aangepakt; eerst deze Fase D-versie laten staan zoals gebouwd.
+### Fase E — Same-Origin ORBIT PWA (geïmplementeerd + getest, 5 oktober 2026)
 
-**Nog te doen:**
-- `ACCESS_TOKEN_SECRET` moet nog handmatig in **beide** Vercel-
-  projecten als environment variable gezet worden (zie hieronder)
-- Testen/audit van de volledige handoff-flow
+**Doel:** ORBIT bereikbaar maken onder `/orbit` op het platform-origin,
+zodat de game als standalone iPhone-PWA kan functioneren zonder de
+Safari-adresbalk-onderbreking uit het Fase D-aandachtspunt.
+Voorafgegaan door een 17-secties audit (GO/NO-GO-advies: **B, ja met
+beperkingen**).
+
+**Mechanisme:** Vercel **external rewrite** (`vercel.json`) —
+`/orbit/*` + `/api/verify-handoff-token` → de bestaande, onafhankelijke
+game-productie-URL. Browser-origin blijft het platform.
+
+**`stuctech-eng/orbit`: nul wijzigingen**, conform de harde regel uit
+de implementatie-GO. Alle bestaande relatieve paden werken vanzelf
+correct onder `/orbit`.
+
+**Manifest-scope: bewust niet gewijzigd** — blijft open ontwerp-
+vraagstuk (twee-apps-architectuur: ORBIT direct spelen vs. ORBIT
+Platform voor account/games/profiel), hard block uit de GO.
+
+**Debuggeschiedenis — bewaard omdat de uiteindelijke oorzaak niet
+voor de hand lag:** na de eerste push werkte de rewrite voor kale
+paden (`/orbit`, `/orbit/`) meteen, maar **elke aanvraag met een
+`?token=...`-query-string gaf een kale Vercel 404** — ongeacht
+tokeninhoud, lengte, of aanwezigheid van punten (allemaal apart
+getest en uitgesloten). Twee tussentijdse pogingen losten het niet
+op: (1) expliciete `Cache-Control: no-store`-headers toevoegen
+(hypothese: edge-caching van external rewrites) — hielp niet; (2) de
+overlappende exacte `/orbit`-regel verwijderen — potentieel
+regressierisico, niet verder doorgezet. **Daadwerkelijke oorzaak:**
+Vercel's automatische trailing-slash-normalisatie interfereerde met
+de query-string vóórdat de rewrite-regels werden toegepast. Opgelost
+met `"trailingSlash": false` expliciet in `vercel.json`, plus
+`games.html`'s `ORBIT_GAME_URL` aangepast naar `/orbit` **zonder**
+trailing slash (consistent met die instelling, voorkomt dat de eigen
+link alsnog een interne redirect triggert).
+
+**Status: volledig getest door de gebruiker, alle scenario's
+bevestigd:**
+- `/orbit?token=...` (ongeldig token) → correcte "Access expired"-
+  melding, bewijst dat de query-string nu goed wordt doorgegeven
+- "Play ORBIT" vanuit `games.html` → `#accessGate`-flits → **game
+  start daadwerkelijk**, adresbalk blijft op het platform-origin
+
+**Resterend ontwerpvraagstuk, bewust niet opgelost:** de twee-apps/
+PWA-scope-vraag (zie Fase D hierboven) — of, en hoe, `orbit-platform`
+zelf ooit een eigen `manifest.json` krijgt, en of de game's
+`manifest.json`-scope ooit verbreed wordt. Apart te beslissen.
 
 ### Volgende stap
 
-Fase D is gebouwd, wacht op test/audit (zie "Volgende stap ná deze
-push" hieronder) vóórdat Fase E/F (scores, leaderboards) begint.
+Fase D en Fase E zijn beide gebouwd én getest. Volgende mogelijke
+stappen: het twee-apps/PWA-scope-ontwerpvraagstuk oplossen, of
+beginnen aan een nog niet genummerde score/leaderboard-fase.
 
 ---
 
@@ -185,7 +215,15 @@ push" hieronder) vóórdat Fase E/F (scores, leaderboards) begint.
 - `api/issue-access-token.js` (platform), `api/verify-handoff-token.js` + `#accessGate` (game) ✅ live, getest
 - Bestaande game-engine (`stuctech-eng/orbit`) geverifieerd byte-identiek, geen regel gewijzigd
 - Hotfix: ontbrekend relatief importpad in `games.html` gecorrigeerd (`./assets/firebase-init.js`)
-- **UX-aandachtspunt vastgesteld, geen beveiligingsprobleem:** zie roadmap-sectie bovenaan — iOS standalone-ervaring gaat verloren bij de domeinoverstap platform→game; `orbit-platform` wordt het officiële startpunt; same-origin-onderzoek uitgesteld tot aparte fase
+- **UX-aandachtspunt: opgelost door Fase E hieronder**
+
+**Fase E — Same-Origin ORBIT PWA — Volledig getest** (5 oktober 2026)
+
+- `vercel.json` — external rewrite `/orbit/*` + `/api/verify-handoff-token` naar de game, `"trailingSlash": false` ✅ live, getest
+- `games.html` — `ORBIT_GAME_URL` naar `/orbit` (zonder trailing slash) ✅ getest
+- `stuctech-eng/orbit` — **nul wijzigingen**, bevestigd niet nodig
+- **Opgeloste bug tijdens testen:** query-strings (zoals het token) gaven aanvankelijk een kale Vercel 404 door Vercel's automatische trailing-slash-redirect-gedrag — zie roadmap-sectie bovenaan voor de volledige uitzoekgeschiedenis
+- Alle testscenario's bevestigd door de gebruiker: directe `/orbit?token=...`, en de volledige "Play ORBIT"-flow met game-start
 
 ---
 
@@ -220,6 +258,7 @@ ARCHITECTURE.md
 package.json
 .env.example
 firestore.rules          ← nieuw, Fase C — handmatig toepassen in Console
+vercel.json               ← nieuw, Fase E — same-origin rewrite naar de game (trailingSlash: false)
 pages/
   about.html
   demo.html

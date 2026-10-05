@@ -4,6 +4,74 @@ Bijgehouden per feature/fix, nieuwste bovenaan — staande opdracht, geen aparte
 
 ---
 
+## Fase E — Same-Origin ORBIT PWA, geïmplementeerd + volledig getest (5 oktober 2026)
+
+**Geïmplementeerd, uitsluitend in `orbit-platform`:**
+- `vercel.json` (nieuw bestand) — external rewrite: `/orbit/*` +
+  losse `/api/verify-handoff-token`-regel → de bestaande,
+  onafhankelijke game-productie-URL
+- `games.html` — `ORBIT_GAME_URL` van absolute cross-origin URL naar
+  relatief `/orbit`
+
+**`stuctech-eng/orbit`: nul wijzigingen** — bevestigd niet nodig, alle
+bestaande relatieve paden (manifest, sw.js, de
+`verify-handoff-token`-aanroep zelf) werken vanzelf correct.
+
+**Manifest-scope: bewust niet gewijzigd**, hard block uit de
+implementatie-opdracht — blijft open ontwerpvraagstuk (twee-apps-
+architectuur).
+
+### Debugsessie: query-strings braken de rewrite
+
+**Symptoom:** na de eerste push werkten `/orbit` en `/orbit/` (zonder
+query) meteen goed, maar **elke aanvraag met een `?token=...`
+query-string gaf een kale, onbewerkte Vercel 404** — niet onze eigen
+"Access expired"-pagina, een routeringsfout vóór de content er
+überhaupt was.
+
+**Systematisch uitgesloten, via directe tests door de gebruiker:**
+- Tokeninhoud (dots/geen dots, lengte) — geen verschil, alle
+  varianten faalden identiek
+- Verlopen token — uitgesloten, want dat zou onze eigen
+  "Access expired"-pagina tonen, geen Vercel-infra-404; bovendien
+  lag het token nog binnen zijn 120s-venster op het moment van falen
+- De game-origin zelf (`orbit-rho-ruby.vercel.app`) — rechtstreeks
+  getest mét dezelfde query-string, werkte **wel** foutloos; bevestigt
+  dat het probleem uitsluitend in de platform-rewrite zat, niet in de
+  game
+
+**Twee tussentijdse pogingen die het NIET opgelost hebben** (bewaard
+voor toekomstige referentie, zodat deze niet opnieuw geprobeerd
+worden):
+1. Expliciete `Cache-Control: no-store`-response-headers toevoegen
+   voor de gerouteerde paden — hypothese was edge-caching van
+   external rewrites (wat Vercel's eigen documentatie als relevant
+   benoemt sinds april 2026) — **geen effect**
+2. De overlappende exacte `/orbit`-regel verwijderen t.o.v. de
+   wildcard-regel — ingetrokken vóór het zelfs getest werd, want het
+   introduceerde een nieuw regressierisico (kaal `/orbit` zonder
+   trailing slash zou niet meer matchen)
+
+**Daadwerkelijke oorzaak:** Vercel's automatische trailing-slash-
+normalisatie/redirect-gedrag (standaard bij statische projecten,
+nooit expliciet ingesteld in deze repo) interfereerde met de
+query-string vóórdat de rewrite-regels werden toegepast — een interne
+redirect-stap die de `?token=...` niet correct meenam.
+
+**Fix:** `"trailingSlash": false` expliciet toegevoegd aan
+`vercel.json`, gecombineerd met `games.html`'s `ORBIT_GAME_URL`
+aangepast naar `/orbit` **zonder** trailing slash — zodat de eigen
+"Play ORBIT"-link meteen het slash-loze pad raakt en nooit zelf die
+interne redirect activeert.
+
+**Status: volledig getest en bevestigd door de gebruiker** — directe
+`/orbit?token=...`-aanvraag toont nu correct "Access expired", en de
+complete "Play ORBIT"-flow (klik → token aanvragen → `#accessGate`-
+flits → game start) werkt end-to-end, adresbalk blijft op het
+platform-origin.
+
+---
+
 ## Fase D — Getest + UX-bevinding vastgelegd (8 augustus 2026)
 
 **Hotfix:** `games.html` had een ongeldig relatief import-pad
