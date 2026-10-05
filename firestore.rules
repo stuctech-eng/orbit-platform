@@ -58,5 +58,23 @@ service cloud.firestore {
       allow read: if false;
       allow write: if false;
     }
+
+    // scores/{uid}/games/{gameId}/modes/{modeId} — Fase H. Alleen de
+    // eigenaar mag zijn eigen scores lezen ("Mijn scores"). Nooit
+    // client-schrijfbaar — uitsluitend via api/submit-score.js (Admin
+    // SDK, atomaire transactie, server-side plausibiliteitscontrole).
+    match /scores/{uid}/games/{gameId}/modes/{modeId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // leaderboards/{gameId}_{modeId}/entries/{uid} — Fase H. Publiek
+    // leesbaar (de leaderboard-weergave zelf), nooit client-schrijfbaar
+    // — uitsluitend via api/submit-score.js, zelfde transactie als
+    // hierboven.
+    match /leaderboards/{boardId}/entries/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

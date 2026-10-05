@@ -80,7 +80,15 @@
       var data = await res.json();
 
       if (res.ok && data.success && data.token) {
-        window.location.href = '/orbit?token=' + encodeURIComponent(data.token);
+        // Fase H — scoreToken erbij, zelfde entitlement-check leverde
+        // 'm al op. Alleen in de URL, nooit lokaal opgeslagen door het
+        // platform zelf — de game bewaart 'm verder uitsluitend in het
+        // geheugen (zie orbit/index.html, ScoreSync-blok).
+        var url = '/orbit?token=' + encodeURIComponent(data.token);
+        if (data.scoreToken) {
+          url += '&scoreToken=' + encodeURIComponent(data.scoreToken);
+        }
+        window.location.href = url;
       } else {
         showRetry(data.error || 'Kon ORBIT niet starten.');
       }

@@ -82,7 +82,19 @@ module.exports = async (req, res) => {
     // verbeterpunt.
     const token = jwt.sign({ uid: uid, gameId: gameId }, secret, { expiresIn: '120s' });
 
-    res.status(200).json({ success: true, token: token });
+    // Fase H — score-token, uit dezelfde entitlement-check, geen extra
+    // Firestore-read. 30 minuten, eigen "type"-claim zodat dit token
+    // nooit als handoff-token bruikbaar is en andersom. De "iat"-claim
+    // (automatisch door jwt.sign gezet) IS de server-vertrouwde
+    // sessiestart die api/submit-score.js gebruikt voor de
+    // tijdsafhankelijke Classic-plausibiliteitscontrole.
+    const scoreToken = jwt.sign(
+      { uid: uid, gameId: gameId, type: 'score-session' },
+      secret,
+      { expiresIn: '30m' }
+    );
+
+    res.status(200).json({ success: true, token: token, scoreToken: scoreToken });
   } catch (err) {
     console.error('issue-access-token error:', err);
     res.status(500).json({ success: false, error: 'Serverfout, probeer opnieuw' });

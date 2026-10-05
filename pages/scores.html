@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT — My scores</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .mode-card { text-align: left; margin-bottom: 20px; }
+  .mode-card h3 { margin-bottom: 8px; }
+  .mode-card .primary { font-size: 32px; font-weight: 600; }
+  .mode-card .secondary { font-size: 14px; color: var(--dim-40); margin-top: 4px; }
+  .mode-card .empty { font-size: 14px; color: var(--dim-40); }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="../games.html">Games</a>
+    <a href="leaderboard.html">Leaderboard</a>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="section-inner" id="view">
+    <div class="eyebrow">My scores</div>
+    <h2>Loading…</h2>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script type="module">
+  // Fase H — leest scores/{uid}/games/orbit/modes/{modeId}. Elke modus
+  // in zijn eigen eenheid, geen omrekening naar een gedeelde "score"
+  // (zie H2-ontwerpprincipe). Zelfde patroon als account.html's
+  // bestaande entitlements-read.
+  import { auth, db, onAuthStateChanged, doc, getDoc } from '../assets/firebase-init.js';
+
+  var MODES = [
+    { id: 'classic', label: 'Classic', primary: 'ladderIndex', primaryLabel: 'Level', secondary: 'score', secondaryLabel: 'Score' },
+    { id: 'tracking', label: 'Getallen volgen', primary: 'balls', primaryLabel: 'Ballen', secondary: 'timeMs', secondaryLabel: 'Tijd' },
+    { id: 'pattern', label: 'Patroon', primary: 'balls', primaryLabel: 'Ballen', secondary: 'timeMs', secondaryLabel: 'Tijd' },
+    { id: 'sequence', label: 'Sequence Memory', primary: 'length', primaryLabel: 'Lengte', secondary: 'timeMs', secondaryLabel: 'Tijd' },
+  ];
+
+  function formatMs(ms) {
+    if (typeof ms !== 'number') return '–';
+    var s = Math.round(ms / 1000);
+    var m = Math.floor(s / 60);
+    var rem = s % 60;
+    return m + ':' + (rem < 10 ? '0' : '') + rem;
+  }
+
+  var view = document.getElementById('view');
+
+  onAuthStateChanged(auth, async function (user) {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    var cardsHtml = '';
+    for (var i = 0; i < MODES.length; i++) {
+      var mode = MODES[i];
+      var ref = doc(db, 'scores', user.uid, 'games', 'orbit', 'modes', mode.id);
+      var snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        var data = snap.data();
+        var primaryVal = data[mode.primary];
+        var secondaryVal = mode.secondary === 'timeMs' ? formatMs(data[mode.secondary]) : data[mode.secondary];
+        cardsHtml +=
+          '<div class="mode-card">' +
+            '<h3>' + mode.label + '</h3>' +
+            '<div class="primary">' + primaryVal + ' <span style="font-size:14px; color:var(--dim-40);">' + mode.primaryLabel + '</span></div>' +
+            '<div class="secondary">' + mode.secondaryLabel + ': ' + secondaryVal + '</div>' +
+          '</div>';
+      } else {
+        cardsHtml +=
+          '<div class="mode-card">' +
+            '<h3>' + mode.label + '</h3>' +
+            '<div class="empty">Nog geen score.</div>' +
+          '</div>';
+      }
+    }
+
+    view.innerHTML =
+      '<div class="eyebrow">My scores</div>' +
+      '<h2>Your records.</h2>' +
+      cardsHtml;
+  });
+</script>
+</body>
+</html>

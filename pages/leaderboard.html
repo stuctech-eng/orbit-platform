@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT — Leaderboard</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .tab { padding: 8px 16px; border-radius: 999px; background: var(--dim-06); border: 1px solid var(--dim-12); font-size: 13px; color: var(--dim-60); cursor: pointer; }
+  .tab.active { background: var(--white); color: #000; border-color: var(--white); }
+  .entry-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--dim-12); text-align: left; }
+  .entry-rank { color: var(--dim-40); width: 32px; }
+  .entry-name { flex: 1; }
+  .entry-value { font-weight: 600; }
+  .empty { font-size: 14px; color: var(--dim-40); text-align: left; }
+</style>
+</head>
+<body>
+
+<nav class="platform-nav">
+  <a href="../index.html" class="wordmark">ORBIT</a>
+  <div class="links">
+    <a href="../games.html">Games</a>
+    <a href="scores.html">My scores</a>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="eyebrow">Leaderboard</div>
+    <h2 id="modeTitle">Classic</h2>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="entries">Loading…</div>
+  </div>
+</section>
+
+<footer class="platform-footer">
+  ORBIT Platform · stuctech-eng
+</footer>
+
+<script type="module">
+  // Fase H — leest leaderboards/orbit_{modeId}/entries, gesorteerd op
+  // de primaire rankingwaarde per modus. Eigen leaderboard per modus,
+  // geen gecombineerd overzicht (H2/H5-ontwerpprincipe). Publiek
+  // leesbaar per de Fase H Firestore Rules, geen login vereist om te
+  // bekijken — wel om op "My scores" te komen.
+  import { db, collection, getDocs, query, orderBy, limit } from '../assets/firebase-init.js';
+
+  var MODES = [
+    { id: 'classic', label: 'Classic', primary: 'ladderIndex', primaryLabel: 'Level' },
+    { id: 'tracking', label: 'Getallen volgen', primary: 'balls', primaryLabel: 'Ballen' },
+    { id: 'pattern', label: 'Patroon', primary: 'balls', primaryLabel: 'Ballen' },
+    { id: 'sequence', label: 'Sequence Memory', primary: 'length', primaryLabel: 'Lengte' },
+  ];
+
+  var tabsEl = document.getElementById('tabs');
+  var entriesEl = document.getElementById('entries');
+  var titleEl = document.getElementById('modeTitle');
+
+  MODES.forEach(function (mode, i) {
+    var tab = document.createElement('div');
+    tab.className = 'tab' + (i === 0 ? ' active' : '');
+    tab.textContent = mode.label;
+    tab.onclick = function () { selectMode(mode, tab); };
+    tabsEl.appendChild(tab);
+  });
+
+  function selectMode(mode, tabEl) {
+    Array.from(tabsEl.children).forEach(function (t) { t.classList.remove('active'); });
+    tabEl.classList.add('active');
+    titleEl.textContent = mode.label;
+    loadLeaderboard(mode);
+  }
+
+  async function loadLeaderboard(mode) {
+    entriesEl.innerHTML = 'Loading…';
+    try {
+      var entriesRef = collection(db, 'leaderboards', 'orbit_' + mode.id, 'entries');
+      var q = query(entriesRef, orderBy(mode.primary, 'desc'), limit(20));
+      var snap = await getDocs(q);
+
+      if (snap.empty) {
+        entriesEl.innerHTML = '<div class="empty">No entries yet.</div>';
+        return;
+      }
+
+      var rank = 1;
+      var html = '';
+      snap.forEach(function (doc) {
+        var data = doc.data();
+        html +=
+          '<div class="entry-row">' +
+            '<div class="entry-rank">#' + rank + '</div>' +
+            '<div class="entry-name">' + (data.displayName || 'Player') + '</div>' +
+            '<div class="entry-value">' + data[mode.primary] + '</div>' +
+          '</div>';
+        rank++;
+      });
+      entriesEl.innerHTML = html;
+    } catch (err) {
+      entriesEl.innerHTML = '<div class="empty">Could not load leaderboard.</div>';
+    }
+  }
+
+  loadLeaderboard(MODES[0]);
+</script>
+</body>
+</html>

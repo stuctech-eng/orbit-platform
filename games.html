@@ -15,6 +15,7 @@
   <a href="index.html" class="wordmark">ORBIT</a>
   <div class="links">
     <a href="pages/about.html">About</a>
+    <a href="pages/leaderboard.html">Leaderboard</a>
     <a href="pages/account.html">Account</a>
   </div>
 </nav>
@@ -88,7 +89,12 @@
         var data = await res.json();
 
         if (res.ok && data.success && data.token) {
-          window.location.href = ORBIT_GAME_URL + '?token=' + encodeURIComponent(data.token);
+          // Fase H — scoreToken erbij, zelfde patroon als launch.html.
+          var url = ORBIT_GAME_URL + '?token=' + encodeURIComponent(data.token);
+          if (data.scoreToken) {
+            url += '&scoreToken=' + encodeURIComponent(data.scoreToken);
+          }
+          window.location.href = url;
         } else {
           playStatus.textContent = data.error || 'Could not start ORBIT — try again.';
           playBtn.disabled = false;
