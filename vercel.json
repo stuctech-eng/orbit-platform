@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/verify-handoff-token",
+      "destination": "https://orbit-rho-ruby.vercel.app/api/verify-handoff-token"
+    },
+    {
+      "source": "/orbit",
+      "destination": "https://orbit-rho-ruby.vercel.app/"
+    },
+    {
+      "source": "/orbit/:path*",
+      "destination": "https://orbit-rho-ruby.vercel.app/:path*"
+    }
+  ]
+}

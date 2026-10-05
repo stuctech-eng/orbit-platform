@@ -55,9 +55,15 @@
   // antwoord wordt er doorgestuurd naar de game, met het token als
   // querystring. De game zelf controleert alleen het token (zie
   // stuctech-eng/orbit, #accessGate) — nooit Firestore rechtstreeks.
+  //
+  // Fase E — same-origin. ORBIT_GAME_URL is niet langer een absolute
+  // cross-origin URL maar een relatief pad; vercel.json (nieuw, deze
+  // repo) proxyt /orbit/* naar de bestaande, onafhankelijke
+  // game-deployment. De browser blijft op het platform-origin — de
+  // game-repo zelf is hiervoor geen letter gewijzigd.
   import { auth, db, onAuthStateChanged, doc, getDoc } from './assets/firebase-init.js';
 
-  var ORBIT_GAME_URL = 'https://orbit-rho-ruby.vercel.app/';
+  var ORBIT_GAME_URL = '/orbit/';
   var cta = document.getElementById('orbitCta');
 
   function renderPlayButton(user) {
