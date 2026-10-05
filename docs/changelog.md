@@ -4,6 +4,44 @@ Bijgehouden per feature/fix, nieuwste bovenaan — staande opdracht, geen aparte
 
 ---
 
+## Fase H — Scores, leaderboard, platform-navigatie, invite-beheer (5 oktober 2026)
+
+**Scorearchitectuur** (H1-H5 audit/ontwerp vooraf, elk apart
+beoordeeld): `scores/`+`leaderboards/`-Firestore-structuur, score-token
+(30 min, nooit inwisselbaar met het 120s-handoff-token),
+`api/submit-score.js` met atomaire alleen-verbeteren-transactie en een
+tijdsafhankelijke Classic-plausibiliteitscontrole (`floor(verstreken
+seconden / 5.35)`, afgeleid uit de engine's harde +1-stap-per-ronde-
+invariant — een security ceiling, geen gameplayregel). Game-repo kreeg
+een geïsoleerd `ScoreSync`-blok + 4 één-regel-hooks; de bestaande
+engine zelf: nul wijzigingen, geverifieerd met diff. Lokale pending-
+wachtrij, `sendBeacon` als laatste afleverpoging bij `pagehide` (nooit
+als enige bevestiging).
+
+**Twee tijdens praktijktest ontdekte UX-gaten, zelfde fase:**
+pauzemenu kreeg 3 navigatieknoppen (ORBIT Platform/Mijn scores/
+Leaderboard) naast de bestaande 4; `scores.html`/`leaderboard.html`
+kregen een "Back to ORBIT"-link die `launch.html` hergebruikt (geen
+nieuwe tokenlogica).
+
+**Invite-code-beheer, nieuw:** `pages/admin-codes.html` +
+`api/admin-create-code.js`, beveiligd via een server-side
+`ORBIT_ADMIN_UIDS`-allowlist (environment variable) — bewust geen
+rollenmodel. `api/is-admin.js` (kleine aanvulling) regelt uitsluitend
+of de "Admin"-link zichtbaar is in `account.html`; de beveiliging zelf
+zit volledig in `admin-create-code.js`. `redeem-beta-code.js`
+ongewijzigd.
+
+**Deel L — "bestaand lid krijgt Enter beta code" — onderzocht,
+afgesloten, geen bug.** Diagnosepad empirisch doorlopen: het gemelde
+account had daadwerkelijk geen `entitlements/{uid}/games/orbit`-
+document. Correct gedrag, geen codewijziging. Opgelost door de
+speler via de nieuwe admin-pagina een code te geven.
+
+**Status: volledig getest**, inclusief de admin-flow.
+
+---
+
 ## Fase F + G — Eén geïnstalleerde ORBIT-app, volledig automatisch (5 oktober 2026)
 
 **Fase F — same-origin PWA-scope.** Voorafgegaan door een audit die

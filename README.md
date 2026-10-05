@@ -234,12 +234,82 @@ op een echt iPhone-toestel — icoon tikken → automatische check →
 direct spelen, zonder enige extra tik, zolang de sessie geldig is en
 entitlement actief is.
 
+### Fase H — Online scores, leaderboard & platform-navigatie (geïmplementeerd + getest, 5 oktober 2026)
+
+**Voorafgegaan door H1 t/m H5 — audit, scoremodel, anti-cheat, security,
+UX, elk apart beoordeeld vóór implementatie.** Kernbesluit: **geen
+kunstmatige universele score** — elke modus (Classic/Tracking/Patroon/
+Sequence) behoudt zijn eigen vocabulaire, zowel lokaal als online.
+
+**Scorearchitectuur, live:**
+- `scores/{uid}/games/{gameId}/modes/{modeId}` (persoonlijk, alleen
+  eigenaar leesbaar) + `leaderboards/{gameId}_{modeId}/entries/{uid}`
+  (publiek leesbaar) — Firestore Rules toegevoegd
+- `api/issue-access-token.js` uitgebreid: geeft nu **twee** tokens uit
+  dezelfde entitlement-check — het bestaande handoff-token (120s,
+  ongewijzigd) + een nieuw score-token (30 min, `type: 'score-session'`,
+  nooit onderling inwisselbaar)
+- `api/submit-score.js` (nieuw) — atomaire Firestore-transactie, alleen-
+  verbeteren-logica, **tijdsafhankelijke Classic-plausibiliteitscontrole**
+  afgeleid uit de daadwerkelijke engine (`CognitiveEngine.decide()` kan
+  nooit meer dan +1 ladderstap per ronde geven, minimale rondeduur
+  ≈5,35s) — dit is een **security ceiling**, nooit een gameplayregel.
+  Accepteert het score-token via `Authorization`-header (normale
+  `fetch`) of in de body (`sendBeacon`, kan geen custom headers zetten)
+- `pages/scores.html` + `pages/leaderboard.html` (nieuw)
+- Game-repo (`stuctech-eng/orbit`): geïsoleerd `ScoreSync`-blok + 4
+  één-regel-hooks in de bestaande engine (Classic-verbetering,
+  Tracking/Patroon/Sequence-nieuwe-records) — **bestaande engine-code
+  zelf nul keer gewijzigd**, geverifieerd met diff. Lokale pending-
+  wachtrij (`orbit_pending_scores_v1`, los van `orbit_save_v1`),
+  `pagehide`/`visibilitychange` → eerst pending, dan een
+  `sendBeacon`-afleverpoging (nooit omgekeerd — een beacon bevestigt
+  nooit zelf iets)
+
+**Twee UX-gaten, ontdekt tijdens praktijktest op een echt toestel,
+alsnog opgelost binnen dezelfde Fase H:**
+- **Geen navigatie game→platform:** pauzemenu kreeg 3 nieuwe knoppen
+  (ORBIT Platform / Mijn scores / Leaderboard), naast de bestaande 4,
+  die ongewijzigd blijven
+- **Geen weg terug:** `scores.html`/`leaderboard.html` kregen een
+  "Back to ORBIT"-link die simpelweg naar `launch.html` wijst —
+  hergebruikt de volledige bestaande, veilige auth+entitlement+token-
+  flow, geen nieuwe tokenlogica
+
+**Invite-code-beheer (nieuw, Deel M uit de uitbreidingsopdracht):**
+voorheen uitsluitend handmatig via de Firebase Console. Nu:
+- `pages/admin-codes.html` + `api/admin-create-code.js` — beveiliging
+  volledig server-side via een `ORBIT_ADMIN_UIDS`-allowlist
+  (environment variable, kommagescheiden Firebase Auth UID's) — **geen
+  nieuw rollenmodel gebouwd**, bewuste, kleinst-mogelijke oplossing
+- `api/is-admin.js` (nieuw, kleine aanvulling) — zuiver UX-endpoint,
+  bepaalt alleen of de "Admin"-link in `account.html` zichtbaar is.
+  **Geen beveiligingsfunctie** — die blijft volledig in
+  `admin-create-code.js`; dit endpoint voorkomt alleen dat de link
+  onnodig zichtbaar is voor spelers die er toch niets mee kunnen
+  - `redeem-beta-code.js` **bevestigd ongewijzigd** — blijft de enige
+    plek waar een code daadwerkelijk wordt ingewisseld
+
+**Deel L — "bestaand lid krijgt Enter beta code": onderzocht,
+afgesloten, geen bug.** Zowel `games.html` als `launch.html` bleken bij
+audit al correcte entitlement-gating-logica te hebben. Diagnosepad
+empirisch doorlopen op een echt gemeld geval: het betreffende
+account had daadwerkelijk **geen** `entitlements/{uid}/games/orbit`-
+document — dus "Enter beta code" was het **juiste** gedrag, geen race
+condition, geen cache-probleem. Opgelost door via de nieuwe
+`admin-codes.html` een code aan die speler te geven. **Geen
+codewijziging was nodig** — expliciet bevestigd vóórdat er iets werd
+aangepast, conform de eigen "niet gokken"-regel van dit traject.
+
+**Status: volledig getest, inclusief de admin-flow en de verborgen/
+zichtbare Admin-link.**
+
 ### Volgende stap
 
-Fase F en G zijn beide gebouwd én getest. Geen open ontwerpvraagstukken
-meer uit het hele PWA/toegangstraject (Fase A t/m G). Mogelijke
-volgende stap: een nog niet genummerde score/leaderboard-fase, of de
-bewust uitgestelde eerste-login-flow-verbetering uit Fase G.
+Fase A t/m H zijn allemaal gebouwd én getest. Geen open
+ontwerpvraagstukken meer. Mogelijke volgende stappen: de bewust
+uitgestelde eerste-login-flow-verbetering uit Fase G, of nieuwe
+features (bijv. een tweede game, uitgebreidere leaderboard-weergave).
 
 ---
 
