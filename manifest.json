@@ -3,7 +3,7 @@
   "name": "ORBIT",
   "short_name": "ORBIT",
   "description": "A premium, minimalist cognitive memory game.",
-  "start_url": "/orbit",
+  "start_url": "/pages/launch.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBIT</title>
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  /* Geen platform-nav/footer op dit scherm — dit is een korte doorgangs-
+     pagina, geen bestemming op zich. Volledig scherm, rustige melding,
+     consistent met de #accessGate-stijl in de game zelf. */
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .launch-content { text-align: center; padding: 24px; max-width: 320px; }
+  .launch-brand { font-size: 13px; letter-spacing: 0.28em; opacity: 0.6; margin-bottom: 24px; }
+  .launch-message { font-size: 16px; font-weight: 300; line-height: 1.6; opacity: 0.8; margin-bottom: 24px; }
+  .launch-action { display: none; padding: 14px 28px; border-radius: 999px; background: var(--white); color: #000; font-size: 15px; font-weight: 500; text-decoration: none; border: none; }
+  .launch-action.visible { display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="launch-content">
+  <div class="launch-brand">ORBIT</div>
+  <div class="launch-message" id="launchMessage">Even controleren…</div>
+  <button class="launch-action" id="launchAction">Opnieuw proberen</button>
+</div>
+
+<script type="module">
+  // Fase G — automatische sessie-/token-check bij het openen van het
+  // geïnstalleerde icoon. Hergebruikt uitsluitend bestaande mechanismen:
+  // dezelfde onAuthStateChanged/Firestore-reads als games.html, dezelfde
+  // /api/issue-access-token-aanroep als de "Play ORBIT"-knop daar.
+  // Geen nieuwe auth-laag, geen nieuwe token-logica.
+  import { auth, db, onAuthStateChanged, doc, getDoc } from '../assets/firebase-init.js';
+
+  var message = document.getElementById('launchMessage');
+  var action = document.getElementById('launchAction');
+
+  function showRetry(text) {
+    message.textContent = text;
+    action.textContent = 'Opnieuw proberen';
+    action.classList.add('visible');
+    action.onclick = function () {
+      window.location.reload();
+    };
+  }
+
+  onAuthStateChanged(auth, async function (user) {
+    if (!user) {
+      // Niet ingelogd — zelfde bestemming als elders in het platform.
+      window.location.href = 'login.html';
+      return;
+    }
+
+    if (!user.emailVerified) {
+      // Zelfde route als login.html nu al gebruikt voor een
+      // onbevestigd account — geen nieuwe melding verzonnen.
+      window.location.href = 'login.html';
+      return;
+    }
+
+    try {
+      var entitlementRef = doc(db, 'entitlements', user.uid, 'games', 'orbit');
+      var entitlementSnap = await getDoc(entitlementRef);
+      var hasAccess = entitlementSnap.exists() && entitlementSnap.data().status === 'active';
+
+      if (!hasAccess) {
+        window.location.href = 'beta.html';
+        return;
+      }
+
+      message.textContent = 'Even controleren…';
+
+      var idToken = await user.getIdToken();
+      var res = await fetch('/api/issue-access-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: idToken, gameId: 'orbit' })
+      });
+      var data = await res.json();
+
+      if (res.ok && data.success && data.token) {
+        window.location.href = '/orbit?token=' + encodeURIComponent(data.token);
+      } else {
+        showRetry(data.error || 'Kon ORBIT niet starten.');
+      }
+    } catch (err) {
+      showRetry('Netwerkprobleem. Controleer je verbinding.');
+    }
+  });
+</script>
+</body>
+</html>
