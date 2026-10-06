@@ -8,11 +8,15 @@
 <style>
   .code-form { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
   .code-input {
-    width: 100%; max-width: 320px;
+    width: 100%; max-width: 340px;
     min-height: 54px;
     text-align: center;
-    font-size: 20px;
-    letter-spacing: 0.3em;
+    /* 0.3em letter-spacing was afgestemd op korte codes (bv. "TEST2026",
+       8 tekens) — bij het nieuwe ORBIT-XXXX-XXXX-formaat (15 tekens,
+       zie api/admin-create-code.js) paste dat niet meer. Kleinere
+       letter-spacing + iets kleiner lettertype, blijft prima leesbaar. */
+    font-size: 18px;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     background: var(--dim-06);
     border: 1px solid var(--dim-25);
@@ -58,7 +62,7 @@
       '<p class="lead">Signed in as <strong>' + user.email + '</strong>. ' +
       'Enter your invite code to unlock beta access.</p>' +
       '<form class="code-form" id="betaForm" autocomplete="off">' +
-        '<input class="code-input" id="codeInput" type="text" inputmode="text" maxlength="12" placeholder="CODE" aria-label="Invite code" required>' +
+        '<input class="code-input" id="codeInput" type="text" inputmode="text" maxlength="20" placeholder="CODE" aria-label="Invite code" required>' +
         '<button class="btn btn-primary" type="submit" id="submitBtn">Unlock</button>' +
         '<div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>' +
       '</form>';
