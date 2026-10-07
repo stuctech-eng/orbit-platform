@@ -32,6 +32,7 @@ const MODE_FIELDS = {
   tracking: ['balls', 'errors', 'timeMs'],
   pattern: ['balls', 'errors', 'timeMs'],
   sequence: ['length', 'errors', 'timeMs'],
+  telefoon: ['correct', 'errors', 'timeMs'],
 };
 
 const PRIMARY_FIELD = {
@@ -39,6 +40,7 @@ const PRIMARY_FIELD = {
   tracking: 'balls',
   pattern: 'balls',
   sequence: 'length',
+  telefoon: 'correct',
 };
 
 function isValidResult(modeId, result) {
@@ -149,6 +151,15 @@ module.exports = async (req, res) => {
         const allowedDelta = Math.floor(elapsedSeconds / MIN_ROUND_SECONDS);
         const delta = newValue - currentBest;
         if (delta > allowedDelta) {
+          throw new Error('IMPLAUSIBLE_RESULT');
+        }
+      } else if (modeId === 'telefoon') {
+        // Telefoon: 'correct' is de beste reeks nummers OP RIJ binnen één
+        // sessie; timeMs is de hele sessieduur. Een ronde duurt in de
+        // praktijk minimaal enkele seconden (opbouw + zichtbaar + intoetsen
+        // + rustmoment); 2 s per ronde is een ruime ondergrens (ceiling,
+        // geen gameplaynorm) om onmogelijke waarden af te vangen.
+        if (result.timeMs < newValue * 2000) {
           throw new Error('IMPLAUSIBLE_RESULT');
         }
       } else {
