@@ -68,6 +68,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // contacts/{uid} — ORBIT Telefoon, eigen contacten van de speler.
+    // Alleen de eigenaar mag zijn eigen lijst lezen; nooit
+    // client-schrijfbaar — uitsluitend via api/contacts.js (Admin SDK,
+    // score-token bepaalt de uid).
+    match /contacts/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // leaderboards/{gameId}_{modeId}/entries/{uid} — Fase H. Publiek
     // leesbaar (de leaderboard-weergave zelf), nooit client-schrijfbaar
     // — uitsluitend via api/submit-score.js, zelfde transactie als
