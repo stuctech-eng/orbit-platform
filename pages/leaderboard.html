@@ -8,9 +8,17 @@
 <title>ORBIT — Leaderboard</title>
 <link rel="stylesheet" href="../assets/styles.css">
 <style>
-  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
-  .tab { padding: 8px 16px; border-radius: 999px; background: var(--dim-06); border: 1px solid var(--dim-12); font-size: 13px; color: var(--dim-60); cursor: pointer; }
-  .tab.active { background: var(--white); color: #000; border-color: var(--white); }
+  /* Modus-tabs: één rij direct onder de platformbalk, blijft staan tijdens
+     het scrollen. Past het niet, dan veeg je zijwaarts. */
+  .lb-bar { position: sticky; top: var(--nav-h); z-index: 40; margin-top: var(--nav-h); background: rgba(0,0,0,0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid var(--dim-12); }
+  .lb-bar::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 24px; background: linear-gradient(to left, #000, transparent); pointer-events: none; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; padding: 8px 24px 12px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; scroll-snap-align: center; appearance: none; background: transparent; border: 1px solid transparent; font: inherit; font-size: 14px; padding: 9px 16px; border-radius: 999px; color: var(--dim-60); cursor: pointer; white-space: nowrap; touch-action: manipulation; }
+  .tab.active { background: var(--white); color: #000; font-weight: 600; }
+  .tab:not(.active):active { background: var(--dim-12); }
+  .tab:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+  .lb-section { min-height: 0; justify-content: flex-start; padding: 8px 24px 60px; }
   .entry-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--dim-12); text-align: left; }
   .entry-rank { color: var(--dim-40); width: 32px; }
   .entry-name { flex: 1; }
@@ -29,12 +37,10 @@
   </div>
 </nav>
 
-<section class="section">
-  <div class="section-inner">
-    <div class="eyebrow">Leaderboard</div>
-    <h2 id="modeTitle">Classic</h2>
+<div class="lb-bar"><div class="tabs" id="tabs" role="tablist" aria-label="Game mode"></div></div>
 
-    <div class="tabs" id="tabs"></div>
+<section class="section lb-section">
+  <div class="section-inner">
     <div id="entries">Loading…</div>
   </div>
 </section>
@@ -61,20 +67,27 @@
 
   var tabsEl = document.getElementById('tabs');
   var entriesEl = document.getElementById('entries');
-  var titleEl = document.getElementById('modeTitle');
 
   MODES.forEach(function (mode, i) {
-    var tab = document.createElement('div');
+    var tab = document.createElement('button');
+    tab.type = 'button';
     tab.className = 'tab' + (i === 0 ? ' active' : '');
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
     tab.textContent = mode.label;
     tab.onclick = function () { selectMode(mode, tab); };
     tabsEl.appendChild(tab);
   });
 
   function selectMode(mode, tabEl) {
-    Array.from(tabsEl.children).forEach(function (t) { t.classList.remove('active'); });
+    Array.from(tabsEl.children).forEach(function (t) {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
     tabEl.classList.add('active');
-    titleEl.textContent = mode.label;
+    tabEl.setAttribute('aria-selected', 'true');
+    // Gekozen tab netjes in het midden van de rij.
+    tabsEl.scrollTo({ left: tabEl.offsetLeft - (tabsEl.clientWidth - tabEl.offsetWidth) / 2, behavior: 'smooth' });
     loadLeaderboard(mode);
   }
 
@@ -110,5 +123,6 @@
 
   loadLeaderboard(MODES[0]);
 </script>
+<script src="../assets/nav.js"></script>
 </body>
 </html>
